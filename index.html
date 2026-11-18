@@ -325,6 +325,24 @@ table.cmp{min-width:0;width:100%;font-size:12.5px;table-layout:fixed}
 .acct .who{font-family:var(--mono);font-size:15px;overflow-wrap:anywhere}
 .acctbtns{display:flex;flex-wrap:wrap;gap:8px}
 .danger{border-color:rgba(var(--down-rgb),.5)!important;color:var(--down)!important}
+/* ===== onboarding ===== */
+.onb .gform{gap:16px}
+.ostep{font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.obar{height:4px;border-radius:2px;background:var(--sunk);overflow:hidden}
+.obar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .2s}
+.oq{font-size:19px;font-weight:600;line-height:1.55}
+.ohint{font-size:13.5px;color:var(--muted);line-height:1.6}
+.ochoices{display:flex;flex-direction:column;gap:10px}
+.ochoice{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:13px 14px;color:var(--ink)}
+.ochoice b{font-size:15px}
+.ochoice span{font-size:13px;color:var(--muted);line-height:1.5}
+.ochoice[aria-pressed="true"]{border-color:var(--accent);background:var(--sunk);box-shadow:0 0 0 1px var(--accent)}
+.oquick{display:flex;flex-wrap:wrap;gap:8px}
+.oquick button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 14px;font-family:var(--mono);font-size:14px}
+.onav{display:flex;gap:10px}
+.onav .go{flex:1;align-self:auto}
+.onav .link{min-height:48px;padding:0 18px}
+.onb .gform input[type=number]{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:12px;font-family:var(--mono);font-size:20px;font-weight:600;min-height:52px;width:100%}
 /* ===== portfolio ===== */
 .grad{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .go{background:linear-gradient(90deg,var(--accent),var(--accent2));align-self:flex-start;min-height:44px;padding:10px 18px;font-size:14.5px}
@@ -419,6 +437,20 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
   </div>
 </div>
 
+<div class="gate onb" id="onb" hidden>
+  <div class="gcard">
+    <div class="gbrand"><h1>ยินดีต้อนรับสู่ ETF <span class="grad">Radar</span></h1>
+      <p>ตอบคำถามสั้น ๆ ไม่เกิน 6 ข้อ ระบบจะจัดแผนลงทุนและบอกว่าแต่ละเดือนควรซื้ออะไร เท่าไร แก้คำตอบได้ทุกเมื่อ</p></div>
+    <div class="gform">
+      <div class="ostep"><span id="oStepTxt"></span></div>
+      <div class="obar"><i id="oBar"></i></div>
+      <div id="oBody"></div>
+      <p class="gmsg err" id="oMsg" hidden aria-live="polite"></p>
+      <div class="onav"><button class="link" id="oBack" type="button">ย้อนกลับ</button><button class="go" id="oNext" type="button">ถัดไป</button></div>
+    </div>
+  </div>
+</div>
+
 <div class="app">
 <header class="hdr"><div class="hdrin">
   <div><h1>ETF <span class="grad">Radar</span></h1><p class="stamp">ราคาปิด <b id="asof"></b> <span id="live"></span></p></div>
@@ -451,6 +483,7 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
 
   <div class="do" id="planDo" aria-live="polite"></div>
   <button class="link" id="planReset" type="button" hidden>กลับไปให้ระบบจัดให้ทั้งหมด</button>
+  <button class="link" id="onbAgain" type="button">ตอบคำถามเพื่อจัดแผนใหม่</button>
 
   <div class="panel box">
     <h2>ถึงวันเกษียณจะมีเท่าไร</h2>
@@ -1368,6 +1401,7 @@ window.ER_signedIn=async function(acct){
   $("acctEmail").textContent=acct.email||"—";
   try{const snap=await acct.ref.get(),r=snap.exists?snap.data():null;
     if(r&&fin(r.savedAt)&&r.savedAt>PF.savedAt)adopt(JSON.parse(JSON.stringify(r)));
+    if(!r&&!(PF.savedAt>0))showOnboarding(false);
     remoteDoc=acct.ref;syncNote("เชื่อมกับบัญชีของคุณแล้ว เปิดจากเครื่องไหนก็เห็นข้อมูลเดียวกัน ผู้ใช้คนอื่นเห็นพอร์ตนี้ไม่ได้");
     if(recHist()){touch();updatePF();}else if(PF.savedAt>0&&(!r||!fin(r.savedAt)||r.savedAt<PF.savedAt))push();
   }catch(e){syncNote("ยังเชื่อมกับบัญชีไม่ได้ ข้อมูลที่กรอกเก็บไว้ในเครื่องนี้ ลองรีเฟรชหน้าอีกครั้ง");}
@@ -1383,6 +1417,57 @@ $("acctImport").addEventListener("change",async ev=>{const f=ev.target.files&&ev
   try{if(f.size>1e6)throw new Error("big");const r=JSON.parse(await f.text());if(!r||typeof r!=="object"||(!r.P&&!r.PF))throw new Error("shape");
     r.savedAt=Date.now();adopt(r);PF.savedAt=r.savedAt;touch();updatePlan();acctMsg("นำเข้าข้อมูลแล้ว ระบบบันทึกเข้าบัญชีของคุณให้แล้ว");}
   catch(e){acctMsg("ไฟล์นี้ไม่ใช่ไฟล์ข้อมูลของ ETF Radar เลือกไฟล์ที่ดาวน์โหลดจากปุ่มดาวน์โหลดข้อมูลของฉัน",true);}});
+/* ===== ONBOARDING: five questions for a new member, then the plan is built from the answers ===== */
+const OB={i:0,a:{}};
+const OSTEPS=[
+ {k:"age",q:"ตอนนี้คุณอายุเท่าไร",hint:"ใช้กำหนดว่าควรเสี่ยงได้แค่ไหน ยิ่งอายุน้อย ยิ่งมีเวลารอให้พอร์ตฟื้นตัว",type:"num",min:18,max:80,unit:"ปี"},
+ {k:"ret",q:"อยากเกษียณหรือใช้เงินก้อนนี้ตอนอายุเท่าไร",hint:"ระบบจะค่อย ๆ ลดความเสี่ยงให้เมื่อใกล้ถึงอายุนี้",type:"num",min:19,max:90,unit:"ปี",quick:[55,60,65]},
+ {k:"amt",q:"ลงทุนได้เดือนละเท่าไร",hint:"ใส่จำนวนที่ลงได้สม่ำเสมอทุกเดือน โดยไม่กระทบเงินใช้จ่ายและเงินสำรองฉุกเฉิน",type:"num",min:0,max:10000000,unit:"บาท",quick:[1000,3000,5000,10000,20000]},
+ {k:"risk",q:"ถ้าเงินลงทุนลดลง 30% ภายในปีเดียว คุณจะทำอย่างไร",hint:"เหตุการณ์แบบนี้เกิดขึ้นได้จริงในตลาดหุ้น ตอบตามความรู้สึกจริง",type:"pick",opts:[
+   ["cons","ขายออกบางส่วนหรือทั้งหมด","ไม่สบายใจที่เห็นเงินลดลง อยากรักษาเงินต้นไว้ก่อน"],
+   ["mod","อดทนรอ ไม่ทำอะไร","กังวลบ้าง แต่เข้าใจว่าตลาดขึ้นลงเป็นปกติ"],
+   ["agg","ลงทุนต่อหรือซื้อเพิ่ม","มองว่าเป็นโอกาสซื้อของถูก และไม่ต้องใช้เงินก้อนนี้อีกหลายปี"]]},
+ {k:"style",q:"อยากได้อะไรจากการลงทุนมากที่สุด",hint:"ไม่แน่ใจ ให้เลือกข้อแรก",type:"pick",opts:[
+   ["auto","ให้ระบบจัดสมดุลให้","ไม่เน้นด้านใดเป็นพิเศษ ระบบเลือกตามอายุและความเสี่ยง"],
+   ["div","รับปันผลสม่ำเสมอ","อยากได้กระแสเงินสดจากปันผล"],
+   ["tech","เทคโตแรง","เน้นหุ้นเทคโนโลยีและการเติบโต ผันผวนมากขึ้น"],
+   ["usa","เกาะตลาดสหรัฐ","แกนพอร์ตเป็นหุ้นใหญ่สหรัฐ"],
+   ["world","กระจายทั่วโลก","ไม่อยากเลือกประเทศเอง กระจายไปทุกภูมิภาค"]]},
+ {k:"sat",q:"อยากให้ระบบเลือกหุ้นรายตัวมาเสริมพอร์ตด้วยไหม",hint:"หุ้นรายตัวผันผวนกว่า ETF ระบบจะใช้แค่ส่วนน้อยของเงินลงทุน และลดลงเมื่ออายุมากขึ้น",type:"pick",skip:a=>a.risk==="cons",opts:[
+   ["no","ไม่ต้อง ใช้ ETF อย่างเดียว","เรียบง่าย กระจายความเสี่ยงดีที่สุด"],
+   ["yes","เอา ให้ระบบเลือกหุ้นมาเสริม","ราว 10–20% ของเงินลงทุน ตามอายุและความเสี่ยง"]]}];
+const oSteps=()=>OSTEPS.filter(s=>!(s.skip&&s.skip(OB.a)));
+function showOnboarding(fromUser){
+  OB.i=0;OB.a=fromUser?{age:P.age,ret:P.ret,amt:P.amt,risk:P.risk,style:P.style,sat:P.sat?"yes":"no"}:{};
+  $("onb").hidden=false;renderOnb();}
+function oMsg(t){const m=$("oMsg");m.hidden=!t;m.textContent=t||"";}
+function renderOnb(){const st=oSteps(),s=st[OB.i],n=st.length;
+  $("oStepTxt").textContent="ข้อ "+(OB.i+1)+" จาก "+n;$("oBar").style.width=((OB.i+1)/n*100)+"%";oMsg("");
+  let h='<p class="oq">'+s.q+'</p><p class="ohint">'+s.hint+'</p>';
+  if(s.type==="num"){const v=OB.a[s.k];
+    h+='<label for="oNum" style="font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px">'+s.unit+'<input id="oNum" type="number" inputmode="numeric" min="'+s.min+'" max="'+s.max+'" value="'+(v==null?"":v)+'"></label>';
+    if(s.quick)h+='<div class="oquick">'+s.quick.map(q=>'<button type="button" data-q="'+q+'">'+q.toLocaleString("th-TH")+'</button>').join("")+'</div>';}
+  else h+='<div class="ochoices">'+s.opts.map(o=>'<button type="button" class="ochoice" data-v="'+o[0]+'" aria-pressed="'+(OB.a[s.k]===o[0])+'"><b>'+o[1]+'</b><span>'+o[2]+'</span></button>').join("")+'</div>';
+  $("oBody").innerHTML=h;$("oBack").hidden=OB.i===0;$("oNext").textContent=OB.i===n-1?"ดูแผนของฉัน":"ถัดไป";
+  const num=$("oNum");if(num)setTimeout(()=>{try{num.focus();}catch(e){}},50);}
+function oRead(){const s=oSteps()[OB.i];
+  if(s.type==="num"){const v=parseFloat($("oNum").value);
+    if(!isFinite(v)){oMsg("ใส่ตัวเลขก่อน");return false;}
+    if(v<s.min||v>s.max){oMsg("ใส่ตัวเลขระหว่าง "+s.min.toLocaleString("th-TH")+" ถึง "+s.max.toLocaleString("th-TH"));return false;}
+    if(s.k==="ret"&&v<=OB.a.age){oMsg("อายุเกษียณต้องมากกว่าอายุตอนนี้ ("+OB.a.age+" ปี)");return false;}
+    OB.a[s.k]=s.k==="amt"?Math.round(v):Math.round(v);return true;}
+  if(OB.a[s.k]==null){oMsg("เลือกหนึ่งข้อก่อน");return false;}return true;}
+function finishOnb(){const a=OB.a;
+  P.age=a.age;P.ret=a.ret;P.amt=a.amt;P.risk=a.risk;P.style=a.style||"auto";P.sat=a.risk!=="cons"&&a.sat==="yes";
+  P.custom=null;P.mkTag=null;P.tgTag=null;P.auto=true;P.cash=a.amt;
+  $("onb").hidden=true;initPlan();savePlan();updatePlan();setTab("plan",true);try{window.scrollTo(0,0);}catch(e){}}
+$("oBody").addEventListener("click",ev=>{const c=ev.target.closest(".ochoice");if(c){const s=oSteps()[OB.i];OB.a[s.k]=c.dataset.v;
+    [...$("oBody").querySelectorAll(".ochoice")].forEach(x=>x.setAttribute("aria-pressed",x===c));oMsg("");return;}
+  const q=ev.target.closest("[data-q]");if(q){$("oNum").value=q.dataset.q;}});
+$("oBody").addEventListener("keydown",ev=>{if(ev.key==="Enter"&&ev.target.id==="oNum"){ev.preventDefault();$("oNext").click();}});
+$("oNext").addEventListener("click",()=>{if(!oRead())return;if(OB.i<oSteps().length-1){OB.i++;renderOnb();}else finishOnb();});
+$("oBack").addEventListener("click",()=>{if(OB.i>0){OB.i--;renderOnb();}});
+$("onbAgain").addEventListener("click",()=>showOnboarding(true));
 /* ===== COMPARE: ETF only vs hybrid vs stocks only, then pick the least risky one that reaches the goal ===== */
 function fvConst(rate,amt,yrs,start){const rm=Math.pow(1+Math.max(-0.99,rate/100),1/12)-1;let v=start;for(let m=0;m<yrs*12;m++)v=(v+amt)*(1+rm);return v;}
 function solveUp(f,lo,hi,target){for(let i=0;i<60;i++){const mid=(lo+hi)/2;if(f(mid)<target)lo=mid;else hi=mid;}return(lo+hi)/2;}
