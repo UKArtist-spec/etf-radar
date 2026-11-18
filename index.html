@@ -1,0 +1,1570 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ETF Radar</title>
+<meta name="description" content="แผนลงทุน ETF ตามอายุ บอกว่าเดือนนี้ซื้ออะไร พร้อมพอร์ตส่วนตัวของแต่ละคน">
+<meta name="theme-color" content="#0a1120">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ETF Radar">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<style>
+/* Layout: a trading-desk sheet. Controls on top, one dense heat table as the centre, detail and tools beneath it. */
+:root{
+  --bg:#0a1120; --surface:#121b2e; --sunk:#1a2540; --ink:#e9eefb; --muted:#93a3bf; --line:#25324d; --glow:#17284f;
+  --accent:#5aa2ff; --accent2:#2fe0b5; --accent-ink:#04122b; --up:#3ddc97; --down:#ff7d70; --up-rgb:61,220,151; --down-rgb:255,125,112; --warn:#f2b84b;
+  --c1:#5aa2ff; --c2:#a48bff; --c3:#2fd6b0; --c4:#f08fc0; --c5:#b9cf5a; --c6:#8fa3bf; --c7:#f2b84b; --c8:#ff9d5c;
+  --sans:"IBM Plex Sans Thai","Noto Sans Thai","Leelawadee UI",Tahoma,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:radial-gradient(900px 420px at 85% -80px,var(--glow) 0,transparent 70%) no-repeat,var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.25}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:18px;font-weight:600}
+h3{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+p{margin:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.up{color:var(--up)} .down{color:var(--down)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.top .sub{color:var(--muted);max-width:60ch}
+.stamp{font-size:13px;color:var(--muted);text-align:right}
+.stamp b{color:var(--ink);font-weight:600}
+
+/* summary */
+.sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.sum > div{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.sum .big{font-family:var(--mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.sum .lab{font-size:12px;color:var(--muted)}
+.sum .who{font-size:13px;color:var(--muted)}
+@media (max-width:720px){.sum{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* controls */
+.ctrl{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.seg{display:inline-flex;background:var(--sunk);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 11px;border-radius:6px;font-size:13px;font-weight:500;color:var(--muted);font-family:var(--mono)}
+.seg.txt button{font-family:var(--sans)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--line);background:var(--surface);padding:5px 12px;border-radius:999px;font-size:13px;color:var(--muted)}
+.chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.search{margin-left:auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 12px;font:inherit;font-size:14px;width:190px;max-width:100%}
+.lbl{font-size:12px;color:var(--muted);margin-right:-8px}
+
+/* table */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.scroll{overflow-x:auto;border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:980px;font-size:13.5px}
+th,td{padding:9px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+tbody tr:last-child td{border-bottom:0}
+th{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.03em;background:var(--surface);position:sticky;top:0}
+th button{border:0;background:none;padding:0;font:inherit;color:inherit;letter-spacing:inherit}
+th.on, th.on button{color:var(--accent)}
+td.l,th.l{text-align:left}
+td.name{position:sticky;left:0;background:var(--surface);z-index:1;min-width:210px;white-space:normal}
+th.name{position:sticky;left:0;z-index:2}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--sunk)}
+tbody tr.sel td{background:var(--sunk)}
+tbody tr.sel td.name{box-shadow:inset 3px 0 0 var(--accent)}
+.tk{font-family:var(--mono);font-weight:600;font-size:14px}
+.nm{font-size:12px;color:var(--muted);display:block;line-height:1.3}
+.heat{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500}
+.star{border:0;background:none;font-size:17px;line-height:1;color:var(--line);padding:2px 4px}
+.star[aria-pressed="true"]{color:var(--warn)}
+.old{font-size:10.5px;color:var(--warn);font-family:var(--sans);display:block}
+.tag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-family:var(--sans)}
+.tag.g{border-color:rgba(var(--up-rgb),.5);color:var(--up)}
+.tag.a{border-color:var(--warn);color:var(--warn)}
+.tag.r{border-color:rgba(var(--down-rgb),.55);color:var(--down)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+
+/* two-up */
+.grid2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.box{padding:18px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.boxhead{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between}
+
+/* diverging bars */
+.bars{display:flex;flex-direction:column;gap:5px}
+.bar{display:grid;grid-template-columns:58px minmax(0,1fr) 78px;gap:10px;align-items:center;border:0;background:none;padding:2px 0;text-align:left;width:100%}
+.bar .trk{position:relative;height:16px;background:linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat}
+.bar .fill{position:absolute;top:2px;bottom:2px;border-radius:2px}
+.bar .v{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;font-weight:500}
+.bar .k{font-family:var(--mono);font-size:13px;font-weight:600}
+.bar.cur .k{color:var(--accent)}
+
+/* detail */
+.dhead{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;align-items:flex-start}
+.dhead .px{font-family:var(--mono);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.range{display:flex;flex-direction:column;gap:6px}
+.rtrk{position:relative;height:8px;border-radius:4px;background:var(--sunk)}
+.rtrk i{position:absolute;top:-4px;width:3px;height:16px;border-radius:2px;background:var(--accent);transform:translateX(-50%)}
+.rtrk u{position:absolute;top:-2px;width:1px;height:12px;background:var(--muted);transform:translateX(-50%)}
+.rlab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px}
+@media (max-width:520px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.facts div{display:flex;flex-direction:column;min-width:0}
+.facts span{font-size:12px;color:var(--muted)}
+.facts b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.cagr{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.cagr div{background:var(--surface);padding:8px 6px;text-align:center}
+.cagr span{display:block;font-size:11px;color:var(--muted)}
+.cagr b{font-family:var(--mono);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.cagr{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.hold{display:flex;flex-direction:column;gap:5px}
+.hold div{display:grid;grid-template-columns:minmax(0,1fr) 90px 48px;gap:10px;align-items:center;font-size:13px}
+.hold div > span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hold em{display:block;height:6px;border-radius:3px;background:var(--accent);opacity:.75}
+.hold b{font-family:var(--mono);font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+@media (max-width:520px){.cols{grid-template-columns:minmax(0,1fr)}}
+.cols > div{display:flex;flex-direction:column;gap:8px;min-width:0}
+
+/* DCA */
+.form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:520px){.form{grid-template-columns:minmax(0,1fr)}}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+.form input[type=number]{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:15px;width:100%}
+.form input[type=range]{width:100%;accent-color:var(--accent)}
+.form output{font-family:var(--mono);font-size:15px;color:var(--ink);font-weight:600}
+.link{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 12px;font-size:13px;align-self:flex-start}
+.out{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.out div{display:flex;flex-direction:column;min-width:0}
+.out span{font-size:12px;color:var(--muted)}
+.out b{font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+
+/* plan + rebalance */
+.form.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:720px){.form.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.chk input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+.in{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;padding:5px 8px;font-family:var(--mono);font-size:13.5px;width:78px;text-align:right}
+select.in{width:auto;text-align:left}
+table.plain{min-width:740px}
+.plain tbody tr{cursor:default}
+.plain tbody tr:hover td{background:transparent}
+.plain tr.off td{opacity:.45}
+.plain input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+tfoot td{font-weight:600;border-top:1px solid var(--line);border-bottom:0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px}
+.alloc{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--sunk)}
+.alloc span{height:100%;min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--muted)}
+.out.wide{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.glide{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:10px;margin-top:10px}
+.glide > div{display:flex;flex-direction:column;gap:4px;align-items:stretch;text-align:center;font-size:12px;color:var(--muted);min-width:0}
+.glide .col{height:84px;display:flex;flex-direction:column;border-radius:4px;overflow:hidden;background:var(--sunk)}
+.glide b{font-family:var(--mono);font-weight:600;color:var(--ink);font-size:12.5px}
+.go{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13.5px}
+.go:hover{filter:brightness(1.08)}
+.do{background:var(--sunk);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.buys{display:flex;flex-wrap:wrap;gap:8px}
+.buy{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 11px;font-size:14px;font-family:var(--mono);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:2px}
+.buy b{font-weight:600;margin-right:6px}
+details.adv{border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+details.adv summary{cursor:pointer;font-size:13.5px;color:var(--muted)}
+.advin{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+.verdict{padding:12px 14px;border-radius:8px;background:var(--sunk);font-size:14px}
+
+/* glossary */
+.gloss{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 28px}
+@media (max-width:720px){.gloss{grid-template-columns:minmax(0,1fr)}}
+.gloss dt{font-weight:600;font-size:14px}
+.gloss dd{margin:0;color:var(--muted);font-size:13.5px}
+.gloss div{min-width:0}
+.note{font-size:12.5px;color:var(--muted);max-width:90ch}
+.note a{color:var(--accent)}
+
+/* ===== app shell, phone first ===== */
+.hdr{background:var(--surface);border-bottom:1px solid var(--line)}
+.hdrin{max-width:1180px;margin:0 auto;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hdr h1{font-size:22px}
+.hdr .stamp{text-align:left;font-size:12.5px}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+.tabs button{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;font-size:11.5px;font-weight:500;color:var(--muted);min-height:58px}
+.tabs svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabs button[aria-current="page"]{color:var(--accent);font-weight:600}
+.wrap{padding-block:16px 96px;gap:16px}
+.view{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel,.do{border-radius:14px}
+.box{padding:16px;gap:14px}
+.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fields.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fields label{display:flex;flex-direction:column;justify-content:flex-end;gap:5px;font-size:12.5px;color:var(--muted);min-width:0}
+.fields input{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font-family:var(--mono);font-size:18px;font-weight:600;width:100%;min-height:48px}
+.qlabel{font-size:13px;font-weight:600;margin-bottom:-6px}
+.seg.big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:4px}
+.seg.big.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.seg.big button{padding:11px 6px;font-size:14.5px;min-height:44px}
+.seg button[aria-pressed="true"]{font-weight:600}
+.do{background:var(--surface);border:1px solid var(--line);padding:16px;gap:0}
+.doh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-bottom:10px}
+.doh b{font-family:var(--mono);font-size:17px;color:var(--accent);white-space:nowrap}
+.buyrow{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border:0;border-top:1px solid var(--line);background:none;width:100%;text-align:left}
+.buyrow .dot{margin:0;width:12px;height:12px;border-radius:3px}
+.buyrow .tk{font-size:16px;display:block}
+.buyrow .amt{text-align:right;display:flex;flex-direction:column}
+.buyrow .amt b{font-family:var(--mono);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.buyrow .amt span{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.dohint{font-size:12.5px;color:var(--muted);padding-top:10px;border-top:1px solid var(--line)}
+.ret{display:flex;flex-direction:column;gap:14px}
+.hero{display:flex;flex-direction:column;gap:2px}
+.hero span{font-size:13px;color:var(--muted)}
+.hero b{font-family:var(--mono);font-size:clamp(26px,8vw,36px);font-weight:600;color:var(--accent);line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.hero em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stats div{display:flex;flex-direction:column;min-width:0}
+.stats span{font-size:12px;color:var(--muted)}
+.stats b{font-family:var(--mono);font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.alloc{height:16px}
+details.adv summary{padding:6px 0;min-height:32px;font-size:14px}
+.rblist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.rb{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.rbh{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600}
+.rbh > span{min-width:0}
+.rbh b{font-size:14px;text-align:right;font-weight:600}
+.rb label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.rb input{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:9px 12px;font-family:var(--mono);font-size:16px;width:100%;min-height:44px}
+.rbs{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted)}
+.rbs b{font-weight:500;color:var(--ink)}
+.rbs b.down{color:var(--down)}
+.mlist{display:none;flex-direction:column}
+.mrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px 10px 6px;border-bottom:1px solid var(--line);cursor:pointer}
+.mrow:last-child{border-bottom:0}
+.mrow.sel{background:var(--sunk)}
+.mrow .r{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.mrow .px{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pill{font-family:var(--mono);font-size:14px;font-weight:600;padding:3px 8px;border-radius:6px;min-width:80px;text-align:right;font-variant-numeric:tabular-nums}
+.mrow .star{font-size:20px;padding:8px}
+@media (max-width:760px){
+  .mlist{display:flex}.tablepanel{display:none}
+  .fields input,.form input[type=number],.in,.search,.rb input{font-size:16px}
+  .fields input{font-size:18px}
+  .ctrl{gap:10px}
+  #periods,#sPeriods{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));width:100%}
+  #modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+  #periods button,#sPeriods button,#modes button{padding:10px 0;min-height:40px}
+  .search{margin-left:0;width:100%;padding:10px 12px}
+  .chips button{padding:9px 14px;font-size:14px}
+  .sum .big{font-size:19px}
+  .dhead .px{font-size:22px}
+}
+@media (max-width:520px){.fields{grid-template-columns:repeat(2,minmax(0,1fr))}.fields .full{grid-column:1/-1}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:761px){
+  .tabs{position:static;border-top:0;border-bottom:1px solid var(--line);grid-template-columns:repeat(5,auto);justify-content:center;gap:8px;padding-bottom:0}
+  .tabs button{flex-direction:row;gap:8px;font-size:14px;min-height:48px;padding:10px 16px;border-bottom:2px solid transparent}
+  .tabs button[aria-current="page"]{border-bottom-color:var(--accent)}
+  .wrap{padding-block:24px 56px}
+  #v-plan{max-width:760px;width:100%;margin:0 auto}
+  #v-portfolio,#v-tools{max-width:980px;width:100%;margin:0 auto}
+}
+
+.hdr .tag{white-space:nowrap;font-size:11px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.rbs{flex-wrap:wrap}
+table.cmp{min-width:0;width:100%;font-size:12.5px;table-layout:fixed}
+.cmp th,.cmp td{padding:8px 5px;white-space:normal;overflow-wrap:anywhere;vertical-align:top}
+.cmp th:first-child,.cmp td:first-child{text-align:left;color:var(--muted);width:31%;font-family:var(--sans)}
+.cmp td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.cmp th{position:static;font-size:12.5px;color:var(--ink)}
+.cmp .pick{background:var(--sunk)}
+.cmp th small{display:block;font-weight:500;color:var(--muted);font-size:10.5px}
+.cmp tr.sep td{border-top:2px solid var(--line)}
+/* ===== login gate ===== */
+.gate{position:fixed;inset:0;z-index:60;background:radial-gradient(900px 420px at 85% -80px,var(--glow) 0,transparent 70%) no-repeat,var(--bg);overflow-y:auto;
+  padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;align-items:flex-start;justify-content:center}
+.gcard{width:100%;max-width:420px;margin-top:6vh;display:flex;flex-direction:column;gap:16px}
+.gbrand{display:flex;flex-direction:column;gap:6px}
+.gbrand h1{font-size:30px}
+.gbrand p{color:var(--muted);font-size:14.5px}
+.gform{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.gform label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.gform input[type=email],.gform input[type=password]{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:12px;font:inherit;font-size:16px;min-height:48px;width:100%}
+.gform .go{align-self:stretch;min-height:48px;font-size:15.5px}
+.gform .chk{align-items:flex-start;line-height:1.5}
+.gform .chk input{margin-top:3px;flex:none}
+.gmsg{font-size:13.5px;border-radius:10px;padding:10px 12px;background:var(--sunk)}
+.gmsg.err{color:var(--down)}
+.gmsg.ok{color:var(--up)}
+.glinks{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.glinks button{border:0;background:none;color:var(--accent);padding:6px 0;font-size:14px}
+.gpriv{font-size:12.5px;color:var(--muted);line-height:1.6}
+.gpriv summary{cursor:pointer;color:var(--ink);font-size:13px}
+.acct{display:flex;flex-direction:column;gap:12px}
+.acct .who{font-family:var(--mono);font-size:15px;overflow-wrap:anywhere}
+.acctbtns{display:flex;flex-wrap:wrap;gap:8px}
+.danger{border-color:rgba(var(--down-rgb),.5)!important;color:var(--down)!important}
+/* ===== portfolio ===== */
+.grad{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.go{background:linear-gradient(90deg,var(--accent),var(--accent2));align-self:flex-start;min-height:44px;padding:10px 18px;font-size:14.5px}
+.hdrr{display:flex;align-items:center;gap:8px}
+.icon{border:1px solid var(--line);background:var(--sunk);border-radius:10px;width:42px;height:42px;display:grid;place-items:center;color:var(--muted)}
+.icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icon[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+body.hide .money{filter:blur(9px);user-select:none}
+body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--ink)}
+.fields select,.fields input[type=text]{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px;width:100%;min-height:48px}
+.fields input[type=text]{font-family:var(--sans);font-weight:500}
+.donutrow{display:grid;grid-template-columns:132px minmax(0,1fr);gap:18px;align-items:center}
+.donut{position:relative;width:132px;height:132px}
+.donut .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11.5px;color:var(--muted)}
+.donut .ctr b{font-family:var(--mono);font-size:17px;color:var(--ink)}
+.clsrows{display:flex;flex-direction:column;gap:10px;min-width:0}
+.clsrow{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:4px 8px;align-items:center;font-size:13.5px}
+.clsrow .trk{grid-column:1/-1;position:relative;height:8px;border-radius:4px;background:var(--sunk)}
+.clsrow .trk i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.clsrow .trk u{position:absolute;top:-4px;width:2px;height:16px;background:var(--ink);border-radius:1px;transform:translateX(-50%)}
+.clsrow b{font-family:var(--mono);text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.clsrow .dot{margin-right:6px}
+@media (max-width:420px){.donutrow{grid-template-columns:minmax(0,1fr);justify-items:center}.clsrows{width:100%}}
+.pflist{display:flex;flex-direction:column}
+.pfrow{display:grid;grid-template-columns:12px minmax(0,1fr) auto 36px;gap:6px 10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.pfrow:first-child{border-top:0}
+.pfrow .dot{margin:0;width:12px;height:12px;border-radius:3px}
+.pfv{text-align:right;display:flex;flex-direction:column}
+.pfv b{font-family:var(--mono);font-size:15px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pfv span{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pfq{grid-column:2/4;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.pfq input{flex:1;min-width:0;max-width:200px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:16px;min-height:42px}
+.pfx{border:0;background:none;color:var(--muted);font-size:18px;width:36px;height:36px;border-radius:8px}
+.pfx:hover{background:var(--sunk);color:var(--down)}
+@media (prefers-reduced-motion:no-preference){.bar .fill{transition:width .25s ease}}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gcard">
+    <div class="gbrand"><h1>ETF <span class="grad">Radar</span></h1>
+      <p>แผนลงทุน ETF ตามอายุ บอกว่าเดือนนี้ซื้ออะไร เท่าไร พร้อมพอร์ตส่วนตัวที่เปิดดูได้ทุกเครื่อง</p></div>
+
+    <form class="gform" id="gSignin" novalidate>
+      <h2>เข้าสู่ระบบ</h2>
+      <label for="siEmail">อีเมล<input id="siEmail" type="email" autocomplete="email" inputmode="email" required></label>
+      <label for="siPass">รหัสผ่าน<input id="siPass" type="password" autocomplete="current-password" required></label>
+      <button class="go" type="submit">เข้าสู่ระบบ</button>
+      <div class="glinks"><button type="button" data-go="gReset">ลืมรหัสผ่าน</button><button type="button" data-go="gSignup">ยังไม่มีบัญชี สมัครสมาชิก</button></div>
+    </form>
+
+    <form class="gform" id="gSignup" novalidate hidden>
+      <h2>สมัครสมาชิก</h2>
+      <label for="suEmail">อีเมล<input id="suEmail" type="email" autocomplete="email" inputmode="email" required></label>
+      <label for="suPass">รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)<input id="suPass" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label for="suPass2">ยืนยันรหัสผ่าน<input id="suPass2" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label class="chk" for="suOk"><input type="checkbox" id="suOk"> ฉันอ่านและยอมรับการเก็บข้อมูลตามด้านล่าง</label>
+      <details class="gpriv"><summary>การเก็บและใช้ข้อมูล</summary>
+        <p>ระบบเก็บอีเมลของคุณ และข้อมูลที่คุณกรอกในแอป เช่น อายุ เงินลงทุนต่อเดือน และสินทรัพย์ที่ถือ เพื่อแสดงแผนและพอร์ตให้คุณเท่านั้น ข้อมูลเก็บบน Firebase ของ Google ที่ศูนย์ข้อมูลสิงคโปร์ ผู้ใช้คนอื่นเปิดดูข้อมูลของคุณไม่ได้ ผู้ดูแลแอปมีสิทธิ์เข้าถึงฐานข้อมูลในทางเทคนิคเพื่อดูแลระบบ คุณดาวน์โหลดหรือลบบัญชีและข้อมูลทั้งหมดได้เองทุกเมื่อในแท็บพอร์ต ไม่ต้องกรอกชื่อจริงหรือเลขบัญชีใด ๆ</p>
+      </details>
+      <button class="go" type="submit">สมัครสมาชิก</button>
+      <div class="glinks"><button type="button" data-go="gSignin">มีบัญชีแล้ว เข้าสู่ระบบ</button></div>
+    </form>
+
+    <form class="gform" id="gReset" novalidate hidden>
+      <h2>ตั้งรหัสผ่านใหม่</h2>
+      <p class="muted" style="font-size:13.5px">ใส่อีเมลที่ใช้สมัคร ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้</p>
+      <label for="rsEmail">อีเมล<input id="rsEmail" type="email" autocomplete="email" inputmode="email" required></label>
+      <button class="go" type="submit">ส่งลิงก์ตั้งรหัสผ่านใหม่</button>
+      <div class="glinks"><button type="button" data-go="gSignin">กลับไปหน้าเข้าสู่ระบบ</button></div>
+    </form>
+
+    <div class="gform" id="gVerify" hidden>
+      <h2>ยืนยันอีเมลของคุณ</h2>
+      <p style="font-size:14px">เราส่งลิงก์ยืนยันไปที่ <b id="vEmail" class="num"></b> แล้ว เปิดอีเมลและกดลิงก์ จากนั้นกลับมากดปุ่มด้านล่าง ถ้าไม่เห็นอีเมล ลองดูในโฟลเดอร์ Spam หรือ Junk</p>
+      <button class="go" id="vDone" type="button">ฉันกดยืนยันแล้ว</button>
+      <div class="glinks"><button type="button" id="vResend">ส่งอีเมลยืนยันอีกครั้ง</button><button type="button" id="vOut">ใช้อีเมลอื่น</button></div>
+    </div>
+
+    <div class="gform" id="gSetup" hidden>
+      <h2>ยังไม่ได้เชื่อมระบบสมาชิก</h2>
+      <p style="font-size:14px">หน้านี้ยังไม่ได้ใส่ค่าเชื่อมต่อ Firebase จึงยังเข้าสู่ระบบไม่ได้</p>
+    </div>
+
+    <p class="gmsg" id="gMsg" hidden aria-live="polite"></p>
+  </div>
+</div>
+
+<div class="app">
+<header class="hdr"><div class="hdrin">
+  <div><h1>ETF <span class="grad">Radar</span></h1><p class="stamp">ราคาปิด <b id="asof"></b> <span id="live"></span></p></div>
+  <div class="hdrr"><span id="planMode" class="tag"></span>
+    <button id="acctBtn" class="icon" type="button" aria-label="บัญชีของฉัน" title="บัญชีของฉัน"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.4-3.6 4.300-5.300 7.500-5.300s6.100 1.700 7.500 5.300"/></svg></button>
+    <button id="hideBtn" class="icon" type="button" aria-pressed="false" aria-label="ซ่อนตัวเลขเงิน" title="ซ่อนตัวเลขเงิน"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.500 12 21.500 12s-3.500 6.500-9.500 6.500S2.500 12 2.500 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button></div>
+</div></header>
+<nav class="tabs" id="tabs" aria-label="เมนูหลัก"><button type="button" data-tab="plan"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg><span>แผน</span></button><button type="button" data-tab="portfolio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4.500a8 8 0 1 0 8.500 8.500H11z"/><path d="M14 3.500a7 7 0 0 1 6.500 6.500H14z"/></svg><span>พอร์ต</span></button><button type="button" data-tab="market"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"/><path d="M5 15l4-5 4 3 6-8"/></svg><span>ETF</span></button><button type="button" data-tab="stocks"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-5M7 9V7"/><rect x="5.500" y="9" width="3" height="4"/><path d="M12 17v-3M12 8V5"/><rect x="10.500" y="8" width="3" height="6"/><path d="M17 15v-2M17 7V4"/><rect x="15.500" y="7" width="3" height="6"/></svg><span>หุ้น</span></button><button type="button" data-tab="tools"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8h7"/><path d="M8.5 12.5h2M13.5 12.5h2M8.5 16.5h2M13.5 16.5h2"/></svg><span>เครื่องมือ</span></button></nav>
+<main class="wrap">
+
+<section class="view" id="v-plan">
+  <div class="panel box">
+    <h2>บอกระบบ 3 อย่าง</h2>
+    <div class="fields">
+      <label for="planAge">อายุตอนนี้ (ปี)<input id="planAge" type="number" min="18" max="90" step="1" inputmode="numeric"></label>
+      <label for="planRet">จะเกษียณตอนอายุ<input id="planRet" type="number" min="19" max="95" step="1" inputmode="numeric"></label>
+      <label class="full" for="planAmt">ลงทุนเดือนละ (บาท)<input class="money" id="planAmt" type="number" min="0" step="500" inputmode="numeric"></label>
+    </div>
+    <p class="qlabel">รับความเสี่ยงได้แค่ไหน</p>
+    <div class="seg txt big" id="planRisk" role="group" aria-label="ระดับความเสี่ยง">
+      <button data-r="cons" type="button">น้อย</button><button data-r="mod" type="button">ปานกลาง</button><button data-r="agg" type="button">สูง</button>
+    </div>
+    <p class="qlabel">อยากได้อะไรจากการลงทุน</p>
+    <div class="chips" id="planStyle" role="group" aria-label="เป้าหมายหลักของการลงทุน">
+        <button data-s="auto" type="button">ให้ระบบจัดสมดุล</button><button data-s="div" type="button">รับปันผลสม่ำเสมอ</button><button data-s="tech" type="button">เทคโตแรง</button><button data-s="usa" type="button">เกาะตลาดสหรัฐ</button><button data-s="world" type="button">กระจายทั่วโลก</button>
+      </div>
+    <label class="chk" for="planSat" style="font-size:14px;color:var(--ink)"><input type="checkbox" id="planSat"> เพิ่มหุ้นรายตัวเป็นส่วนเสริม (ระบบเลือกให้)</label>
+    <p class="note" id="riskDesc"></p>
+  </div>
+
+  <div class="do" id="planDo" aria-live="polite"></div>
+  <button class="link" id="planReset" type="button" hidden>กลับไปให้ระบบจัดให้ทั้งหมด</button>
+
+  <div class="panel box">
+    <h2>ถึงวันเกษียณจะมีเท่าไร</h2>
+    <div class="ret" id="planOut"></div>
+    <div><h3>ยิ่งอายุมาก ระบบยิ่งลดความเสี่ยงให้</h3><div class="glide" id="planGlide"></div>
+      <p class="muted" style="font-size:12px;margin-top:6px">ตัวเลขใต้แท่งคือ สินทรัพย์เติบโต / สินทรัพย์ปลอดภัย (%)</p></div>
+  </div>
+
+  <div class="panel box" id="cmpBox">
+    <h2>เทียบ 3 พอร์ตและเลือกให้</h2>
+    <p class="qlabel">เป้าหมายของคุณ</p>
+    <div class="seg txt big two" id="goalMode" role="group" aria-label="รูปแบบเป้าหมาย">
+      <button data-g="pct" type="button">ผลตอบแทนต่อปี (%)</button><button data-g="amt" type="button">เงินตอนเกษียณ (บาท)</button>
+    </div>
+    <div class="fields two">
+      <label for="goalVal"><span id="goalLab"></span><input id="goalVal" type="number" min="0" step="any" inputmode="decimal"></label>
+    </div>
+    <p class="verdict" id="cmpVerdict" aria-live="polite"></p>
+    <button class="go" id="cmpApply" type="button" hidden></button>
+    <div id="cmpTable"></div>
+    <p class="note" id="cmpStocks"></p>
+    <p class="note">ผลตอบแทนคาดหวังมาจากสมมติฐานที่ตั้งไว้ในส่วนปรับแต่งเอง ไม่ใช่การพยากรณ์ ระบบเลือกพอร์ตที่เสี่ยงน้อยที่สุดที่ยังถึงเป้า แล้วตรวจกับอายุและระดับความเสี่ยง ตัวเลขย้อนหลังคิดจากน้ำหนักวันนี้และเป็นการเปลี่ยนแปลงของราคาเท่านั้น หุ้นที่ระบบเลือกวันนี้คือตัวที่พื้นฐานดีอยู่แล้ว ซึ่งส่วนใหญ่ราคาขึ้นมาแล้ว ตัวเลขย้อนหลังของพอร์ตหุ้นจึงดูดีกว่าที่จะได้จริงถ้าเริ่มลงทุนวันนี้ ช่วงแกว่งเป็นค่าเฉลี่ยรายตัว พอร์ตที่กระจายหลายตัวจะแกว่งน้อยกว่านี้</p>
+  </div>
+
+  <div class="panel box">
+    <h2>สัดส่วนพอร์ตเป้าหมาย</h2>
+    <div class="alloc" id="planBar" role="img" aria-label="สัดส่วนพอร์ตเป้าหมาย"></div>
+    <details class="adv">
+      <summary>เหตุผลที่ระบบเลือกแบบนี้</summary>
+      <div class="advin"><p class="note" id="planPick"></p><p class="note" id="planRule"></p></div>
+    </details>
+    <details class="adv">
+      <summary>ปรับแต่งเอง (ไม่จำเป็น ระบบตั้งให้แล้ว)</summary>
+      <div class="advin">
+        <div class="ctrl">
+          <label class="chk" for="planInf">เงินเฟ้อต่อปี <input class="in" style="width:64px" id="planInf" type="number" min="0" max="15" step="0.5" inputmode="decimal"> %</label>
+          <label class="chk" for="planRs">ผลตอบแทนคาดหวังของหุ้นรายตัว <input class="in" style="width:64px" id="planRs" type="number" min="0" max="20" step="0.5" inputmode="decimal"> %</label>
+          <label class="chk" for="autoMk"><input type="checkbox" id="autoMk"> ปรับน้ำหนักกลุ่มตามแนวโน้มตลาด 1 ปีให้อัตโนมัติ</label>
+          <label class="chk" for="planTilt"><input type="checkbox" id="planTilt"> เพิ่มฝั่งเติบโตเมื่อตลาดปรับฐาน</label>
+          <label class="chk" for="planTiltPts">ขั้นละ <input class="in" style="width:58px" id="planTiltPts" type="number" min="0" max="10" step="1"> จุด</label>
+        </div>
+        <div class="ctrl">
+          <span class="lbl">จัดพอร์ตตามผลตอบแทน</span>
+          <label class="chk" for="tgRet">คาดหวัง <input class="in" style="width:64px" id="tgRet" type="number" min="3" max="12" step="0.5" inputmode="decimal"> % ต่อปี</label>
+          <button class="link" id="tgGo" type="button">จัดพอร์ตตามผลตอบแทนนี้</button>
+        </div>
+        <div class="ctrl">
+          <span class="lbl">ปรับน้ำหนักเองตามตลาดช่วง</span>
+          <div class="seg" id="mkPeriod" role="group" aria-label="ช่วงเวลาที่ใช้ประมวลผล">
+            <button data-p="m1" type="button">1M</button><button data-p="m3" type="button">3M</button><button data-p="ytd" type="button">YTD</button><button data-p="y1" type="button">1Y</button><button data-p="y5" type="button">5Y</button>
+          </div>
+          <div class="seg txt" id="mkDir" role="group" aria-label="แนวทาง">
+            <button data-d="1" type="button">ตามแนวโน้ม</button><button data-d="-1" type="button">สวนตลาด</button>
+          </div>
+          <label class="chk" for="mkStr">ความแรง <input class="in" style="width:58px" id="mkStr" type="number" min="5" max="60" step="5"> %</label>
+          <button class="link" id="mkGo" type="button">ปรับน้ำหนักกลุ่มตามตลาด</button>
+        </div>
+        <p class="note">ตารางด้านล่างแก้สัดส่วน ผลตอบแทนคาดหวัง และติ๊กเลือกกลุ่มเองได้เช่นกัน เมื่อแก้แล้วระบบจะหยุดจัดให้อัตโนมัติจนกว่าจะกดปุ่มกลับไปให้ระบบจัดให้ทั้งหมด</p>
+        <h3>แก้สัดส่วนและกลุ่มเอง</h3>
+        <div class="scroll">
+      <table class="plain">
+        <thead><tr><th>ลงทุน</th><th class="l">กลุ่ม</th><th class="l">ETF ที่ใช้</th><th>สัดส่วนเป้า</th><th>ผลตอบแทนคาดหวัง/ปี</th><th>เฉลี่ยจริง 10 ปี</th><th>ซื้อเดือนนี้</th></tr></thead>
+        <tbody id="planBody"></tbody>
+        <tfoot><tr><td></td><td class="l">รวม</td><td></td><td class="num" id="planSum"></td><td class="num" id="planRet2"></td><td></td><td class="num" id="planAmt2"></td></tr></tfoot>
+      </table>
+    </div>
+      </div>
+    </details>
+    <details class="adv">
+      <summary>คะแนนคัดเลือกหุ้นรายตัว</summary>
+      <div class="advin">
+        <div class="scroll">
+          <table class="plain">
+            <thead><tr><th class="l">หุ้น</th><th class="l">กลุ่ม</th><th>P/E ล่วงหน้า</th><th>อัตรากำไร</th><th>ROE</th><th>หนี้/ทุน</th><th>กำไรโต 5 ปี</th><th>Beta</th><th>คะแนน</th><th class="l">ผล</th></tr></thead>
+            <tbody id="stkBody"></tbody>
+          </table>
+        </div>
+        <p class="note">คะแนนเต็ม 100 จาก 5 ด้าน: คุณภาพธุรกิจ (อัตรากำไร ROE หนี้ต่อทุน) การเติบโต 5 ปี (รายได้และกำไร) ความถูกแพง (P/E ล่วงหน้า และกระแสเงินสดอิสระเทียบราคา) ความผันผวน (Beta) และขนาดบริษัท น้ำหนักแต่ละด้านต่างกันตามระดับความเสี่ยง ระบบไม่ใช้ผลตอบแทนราคาย้อนหลังในการให้คะแนน เลือกไม่เกิน 2 ตัวต่ออุตสาหกรรม ความเสี่ยงสูงเลือกหุ้นที่ผันผวนสูงมาก (Beta เกิน 2) ได้ไม่เกิน 1 ตัว ความเสี่ยงปานกลางไม่เลือกหุ้นที่ Beta เกิน 1.6 และแบ่งเงินเท่ากันทุกตัว</p>
+        <p class="note">รายชื่อมี 21 บริษัทขนาดใหญ่ของโลกที่ซื้อขายในตลาดสหรัฐ ไม่ใช่ทั้งตลาด หุ้นรายตัวเสี่ยงกว่า ETF มาก ราคาลดลงเกินครึ่งและไม่ฟื้นได้ คะแนนสูงไม่ได้แปลว่าราคาจะขึ้น</p>
+      </div>
+    </details>
+    <details class="adv">
+      <summary>คะแนนคัดเลือก ETF ของแต่ละกลุ่ม</summary>
+      <div class="advin">
+        <div class="scroll">
+          <table class="plain">
+            <thead><tr><th class="l">กลุ่ม</th><th class="l">ETF</th><th>ค่าธรรมเนียม</th><th>ขนาดกอง</th><th>อายุกอง</th><th>เฉลี่ย 10 ปี</th><th>10 อันดับแรก</th><th>คะแนน</th><th class="l">ผล</th></tr></thead>
+            <tbody id="scoreBody"></tbody>
+          </table>
+        </div>
+        <p class="note">คะแนนเต็ม 100: ค่าธรรมเนียมต่ำ 30, ขนาดกองใหญ่ 20, อายุกอง 15 (เต็มที่ 10 ปี) ส่วนอีก 35 คะแนนแบ่งระหว่างการกระจายตัวกับผลตอบแทนระยะยาวตามระดับความเสี่ยง กองที่เล็กกว่า 1 พันล้านดอลลาร์หรืออายุไม่ถึง 3 ปีจะถูกตัดออกก่อน ETF ทุกตัวในรายการเป็นแบบ Passive ตามดัชนี ไม่มีแบบ Leveraged หรือ Inverse</p>
+        <p class="note">สิ่งที่ระบบยังไม่มีข้อมูล ควรเช็กเองในแอปโบรกเกอร์ก่อนซื้อ: ค่าความคลาดเคลื่อนจากดัชนี (Tracking Error), ปริมาณซื้อขายและส่วนต่างราคาเสนอซื้อเสนอขาย (Bid-Ask Spread), และราคาตลาดเทียบมูลค่าจริงของกอง (Premium/Discount จาก iNAV)</p>
+      </div>
+    </details>
+  </div>
+  <p class="note">สูตรตามอายุเป็นกฎคร่าว ๆ ที่ใช้กันทั่วไป ไม่ได้ดูรายได้ ภาระ หรือเป้าหมายเฉพาะของคุณ ตัวเลขผลตอบแทนคาดหวังเป็นสมมติฐานที่แก้ได้ ไม่ใช่การรับประกัน และตั้งไว้ต่ำกว่าค่าเฉลี่ยจริง 10 ปีหลังซึ่งเป็นช่วงที่ตลาดดีผิดปกติ</p>
+</section>
+
+<section class="view" id="v-market" hidden>
+  <section class="sum" id="sum" aria-live="polite"></section>
+  <section class="ctrl" aria-label="ตัวกรอง">
+    <div class="seg" id="periods" role="group" aria-label="ช่วงเวลา"></div>
+    <div class="seg txt" id="modes" role="group" aria-label="วิธีคิดผลตอบแทน">
+      <button id="mode-pr" data-m="pr" type="button">เฉพาะราคา</button>
+      <button id="mode-tr" data-m="tr" type="button">รวมปันผล</button>
+    </div>
+    <input class="search" id="q" type="search" placeholder="ค้นหา เช่น QQQ" aria-label="ค้นหา ETF">
+  </section>
+  <div class="chips" id="cats" role="group" aria-label="กลุ่ม ETF"></div>
+  <section class="panel">
+    <div class="mlist" id="mlist"></div>
+    <div class="scroll tablepanel">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+  <div class="grid2">
+    <section class="panel box" id="detail" aria-live="polite"></section>
+    <section class="panel box">
+      <div class="boxhead"><h2 id="rankTitle"></h2><span class="muted" style="font-size:12.5px">กดที่แถบเพื่อดูรายละเอียด</span></div>
+      <div class="bars" id="rank"></div>
+    </section>
+  </div>
+</section>
+
+<section class="view" id="v-portfolio" hidden>
+  <div class="panel box">
+    <div class="hero"><span>มูลค่าพอร์ตรวม</span><b class="money" id="pfTotal"></b><em id="pfSub"></em></div>
+    <div class="donutrow"><div id="pfDonut" class="donut"></div><div id="pfClasses" class="clsrows"></div></div>
+    <p class="verdict" id="pfAdvice" aria-live="polite"></p>
+    <details class="adv">
+      <summary>ตั้งเป้าสัดส่วนแต่ละประเภท</summary>
+      <div class="advin"><div class="fields" id="pfTargets"></div><p class="note" id="pfTgSum"></p>
+        <button class="link" id="pfTgUse" type="button">ใช้สัดส่วนตอนนี้เป็นเป้า</button></div>
+    </details>
+  </div>
+
+  <div class="panel box">
+    <h2>สินทรัพย์ที่ถือ</h2>
+    <div id="pfList" class="pflist"></div>
+    <details class="adv" id="pfAddBox">
+      <summary>+ เพิ่มสินทรัพย์</summary>
+      <div class="advin">
+        <div class="fields two">
+          <label for="pfKind">ประเภท<select id="pfKind"></select></label>
+          <label for="pfTicker" id="pfTickerL">ETF<select id="pfTicker"></select></label>
+          <label for="pfGroup" id="pfGroupL">จัดเข้ากลุ่มของแผน<select id="pfGroup"></select></label>
+          <label for="pfName" id="pfNameL">ชื่อ<input id="pfName" type="text" maxlength="40" placeholder="เช่น PTT, BTC"></label>
+          <label for="pfQty"><span id="pfQtyT">จำนวนหน่วย</span><input id="pfQty" type="number" min="0" step="any" inputmode="decimal"></label>
+        </div>
+        <button class="go" id="pfAdd" type="button">เพิ่มเข้าพอร์ต</button>
+        <p class="note" id="pfAddMsg"></p>
+      </div>
+    </details>
+  </div>
+
+  <div class="panel box">
+    <div class="boxhead"><h2>มูลค่าพอร์ตย้อนหลัง</h2><button class="link" id="pfSnap" type="button">บันทึกยอดวันนี้</button></div>
+    <div id="pfHist"></div>
+  </div>
+
+  <div class="panel box" id="rebal">
+    <h2>ปรับ ETF ให้ตรงแผน</h2>
+    <p class="muted" style="font-size:13.5px">เทียบ ETF ที่ถืออยู่กับสัดส่วนที่ระบบจัดให้ในแท็บแผนของฉัน</p>
+    <div class="fields two">
+      <label for="rbCash">เงินใหม่ที่จะเติมรอบนี้ (บาท)<input class="money" id="rbCash" type="number" min="0" step="500" inputmode="numeric"></label>
+      <label for="rbBand">ปรับเมื่อเบี่ยงเกิน (จุด)<input id="rbBand" type="number" min="1" max="20" step="1" inputmode="numeric"></label>
+    </div>
+    <div class="seg txt big two" id="rbMode" role="group" aria-label="วิธี Rebalance">
+      <button data-m="cash" type="button">ใช้เงินใหม่อย่างเดียว</button><button data-m="full" type="button">ซื้อและขายให้ตรงเป้า</button>
+    </div>
+    <p class="verdict" id="rbVerdict" aria-live="polite"></p>
+    <div class="rblist" id="rbBody"></div>
+    <p class="note">การขายเพื่อ Rebalance มีค่าคอมมิชชันและอาจมีภาระภาษี การใช้เงินใหม่ซื้อกลุ่มที่ต่ำกว่าเป้าจึงเป็นวิธีที่ต้นทุนต่ำกว่า</p>
+  </div>
+
+  <div class="panel box acct" id="acctBox">
+    <h2>บัญชีของฉัน</h2>
+    <div><span class="muted" style="font-size:12.5px">เข้าใช้ด้วยอีเมล</span><div class="who" id="acctEmail">—</div></div>
+    <div class="acctbtns">
+      <button class="link" id="acctOut" type="button">ออกจากระบบ</button>
+      <button class="link" id="acctExport" type="button">ดาวน์โหลดข้อมูลของฉัน</button>
+      <button class="link" id="acctImportBtn" type="button">นำเข้าข้อมูลจากไฟล์</button>
+      <input id="acctImport" type="file" accept="application/json,.json" hidden>
+      <button class="link danger" id="acctDel" type="button">ลบบัญชีและข้อมูลทั้งหมด</button>
+    </div>
+    <p class="note" id="acctMsg" aria-live="polite"></p>
+  </div>
+
+  <div class="panel box">
+    <h2>ตั้งค่า</h2>
+    <div class="fields two">
+      <label for="pfFx">อัตราแลกเปลี่ยน (บาทต่อ 1 ดอลลาร์)<input id="pfFx" type="number" min="20" max="60" step="0.01" inputmode="decimal"></label>
+    </div>
+    <p class="note" id="pfFxNote"></p>
+    <p class="note" id="syncNote"></p>
+  </div>
+</section>
+
+<section class="view" id="v-stocks" hidden>
+  <section class="sum" id="sSum" aria-live="polite"></section>
+  <section class="ctrl" aria-label="ช่วงเวลา"><div class="seg" id="sPeriods" role="group" aria-label="ช่วงเวลา"></div></section>
+  <section class="panel">
+    <div class="mlist" id="sList"></div>
+    <div class="scroll tablepanel">
+      <table>
+        <thead><tr id="sHead"></tr></thead>
+        <tbody id="sBody"></tbody>
+      </table>
+    </div>
+  </section>
+  <div class="grid2">
+    <section class="panel box" id="sDetail" aria-live="polite"></section>
+    <section class="panel box">
+      <div class="boxhead"><h2 id="sRankTitle"></h2><span class="muted" style="font-size:12.5px">กดที่แถบเพื่อดูรายละเอียด</span></div>
+      <div class="bars" id="sRank"></div>
+    </section>
+  </div>
+  <p class="note">หุ้น 21 ตัวนี้คือรายชื่อที่ระบบใช้คัดเลือกส่วนเสริมของแผน ไม่ใช่ทั้งตลาด ผลตอบแทนเป็นการเปลี่ยนแปลงของราคา ยังไม่รวมปันผล ราคาและตัวเลขพื้นฐานอัปเดตวันละครั้ง คะแนนคิดตามระดับความเสี่ยงที่เลือกไว้ในแท็บแผน หน้านี้เป็นข้อมูลเพื่อการศึกษา ไม่ใช่คำแนะนำให้ซื้อหรือขาย</p>
+</section>
+
+<section class="view" id="v-tools" hidden>
+  <section class="panel box">
+    <div class="boxhead"><h2>เครื่องคำนวณ DCA</h2></div>
+    <div class="form">
+      <label for="dcaAmt">เงินลงทุนต่อเดือน (บาท)
+        <input id="dcaAmt" type="number" min="0" step="500" value="5000" inputmode="numeric">
+      </label>
+      <label for="dcaYears">ระยะเวลา <output id="dcaYearsOut"></output>
+        <input id="dcaYears" type="range" min="1" max="40" step="1" value="20">
+      </label>
+      <label for="dcaRate">ผลตอบแทนคาดหวังต่อปี <output id="dcaRateOut"></output>
+        <input id="dcaRate" type="range" min="0" max="25" step="0.5" value="8">
+      </label>
+    </div>
+    <button class="link" id="dcaUse" type="button"></button>
+    <div class="out" id="dcaOut"></div>
+    <div id="dcaChart"></div>
+    <p class="note">ตัวเลขนี้เป็นการคำนวณจากอัตราคงที่ที่คุณตั้งเอง ผลตอบแทนจริงผันผวนทุกปี และผลตอบแทนในอดีตไม่ได้รับประกันอนาคต ยังไม่รวมภาษี ค่าคอมมิชชัน และอัตราแลกเปลี่ยน</p>
+  </section>
+  <section class="box panel">
+    <h2>คำศัพท์และวิธีอ่านตัวเลข</h2>
+    <dl class="gloss">
+      <div><dt>เฉพาะราคา / รวมปันผล</dt><dd>เฉพาะราคาคือราคาหน่วยเปลี่ยนไปเท่าไร รวมปันผลคือผลตอบแทนที่ได้จริงเมื่อนำปันผลกลับไปลงทุนต่อ กองตราสารหนี้และกองปันผลจะต่างกันมากระหว่างสองแบบ</dd></div>
+      <div><dt>จากจุดสูงสุด 52 สัปดาห์</dt><dd>ราคาปัจจุบันต่ำกว่าราคาสูงสุดในรอบปีกี่เปอร์เซ็นต์ ไม่เกิน 5% ถือว่าใกล้จุดสูงสุด 5–10% ย่อตัว 10–20% ปรับฐาน และเกิน 20% เข้าเขตตลาดหมี</dd></div>
+      <div><dt>MA50</dt><dd>ราคาเฉลี่ย 50 วันทำการล่าสุด ราคาอยู่เหนือเส้นนี้มักหมายถึงแนวโน้มระยะกลางยังเป็นบวก อยู่ใต้เส้นหมายถึงแรงขายยังกดอยู่</dd></div>
+      <div><dt>เฉลี่ยต่อปี (CAGR)</dt><dd>ผลตอบแทนรวมปันผลเฉลี่ยแบบทบต้นต่อปี ใช้เทียบกองที่มีอายุต่างกันได้ดีกว่าผลตอบแทนสะสม</dd></div>
+      <div><dt>ค่าธรรมเนียม (Expense ratio)</dt><dd>หักจากมูลค่ากองทุกปีโดยอัตโนมัติ 0.03% เท่ากับ 30 บาทต่อเงินลงทุน 100,000 บาทต่อปี ส่วน 0.68% เท่ากับ 680 บาท ลงทุนยาวยิ่งเห็นผลต่าง</dd></div>
+      <div><dt>ความกระจุกตัว</dt><dd>สัดส่วนของ 10 อันดับแรกในกอง ยิ่งสูง กองยิ่งขึ้นลงตามหุ้นไม่กี่ตัว ETF เทคหลายกองถือหุ้นซ้ำกันมาก ถือหลายกองอาจไม่ได้กระจายความเสี่ยงเพิ่ม</dd></div>
+      <div><dt>ค่าเงินบาท</dt><dd>ผลตอบแทนทั้งหมดคิดเป็นดอลลาร์ ถ้าบาทแข็งค่าระหว่างถือ ผลตอบแทนเมื่อแปลงกลับเป็นบาทจะลดลง และกลับกัน</dd></div>
+      <div><dt>สูตรตามอายุ</dt><dd>สัดส่วนสินทรัพย์เติบโตเท่ากับ 100, 110 หรือ 120 ลบด้วยอายุ ตามระดับความเสี่ยง (ไม่ต่ำกว่า 20% และไม่เกิน 95%) ยิ่งอายุมาก ฝั่งตราสารหนี้และทองยิ่งเพิ่มขึ้นทุกปี</dd></div>
+      <div><dt>ปรับตามภาวะตลาด</dt><dd>ใช้ VOO เป็นตัวแทนตลาด ถ้าราคาต่ำกว่าจุดสูงสุด 52 สัปดาห์เกิน 10% จะเพิ่มฝั่งเติบโต 1 ขั้น เกิน 20% เพิ่ม 2 ขั้น ขนาดขั้นตั้งเองได้ และปิดได้ กฎนี้ซื้อเพิ่มตอนตลาดลง ซึ่งอาจลงต่อได้อีก</dd></div>
+      <div><dt>จัดพอร์ตตามผลตอบแทน</dt><dd>ใส่ผลตอบแทนที่คาดหวัง ระบบจะเริ่มจากสูตรอายุแล้วโยกน้ำหนักไปกลุ่มที่สมมติฐานผลตอบแทนสูงขึ้นจนได้ค่าเฉลี่ยตามเป้า ตัวเลขสมมติฐานแก้ได้ในตาราง</dd></div>
+      <div><dt>ระบบเลือกกลุ่มและ ETF</dt><dd>กลุ่มเลือกตามอายุ ระดับความเสี่ยง และเป้าหมายหลัก เช่น ธีมและเทคใช้ช่วงอายุน้อย ปันผลเริ่มเมื่ออายุ 40–50 ขึ้นไป ส่วน ETF ในกลุ่มคัดด้วยคะแนนจากค่าธรรมเนียม ขนาดกอง อายุกอง การกระจายตัว และผลตอบแทน 10 ปี ไม่ได้ดูราคาช่วงสั้น</dd></div>
+      <div><dt>หุ้นรายตัว (ส่วนเสริม)</dt><dd>ระบบกันเงินส่วนหนึ่งจากฝั่งเติบโตไปซื้อหุ้นรายตัว: ความเสี่ยงสูง 20% ก่อนอายุ 45 แล้วลดเป็น 15%, 10% และ 5% ตามอายุ ความเสี่ยงปานกลาง 10% ก่อนอายุ 50 แล้วเหลือ 5% ความเสี่ยงน้อยไม่มี ที่เหลือยังเป็น ETF ตามแผน ปิดได้ด้วยการเอาติ๊กออก</dd></div>
+      <div><dt>Rebalance</dt><dd>ปรับพอร์ตกลับไปที่สัดส่วนเป้า หลังกลุ่มที่ขึ้นแรงมีน้ำหนักมากเกิน นิยมทำปีละครั้ง หรือเมื่อกลุ่มใดเบี่ยงจากเป้าเกินเกณฑ์ที่ตั้งไว้</dd></div>
+      <div><dt>ดาว ★</dt><dd>กดดาวเพื่อเก็บ ETF ที่สนใจ แล้วกรองดูเฉพาะรายการนั้น รายการนี้บันทึกไว้ในบัญชีของคุณ</dd></div>
+    </dl>
+    <p class="note">ข้อมูลจาก <a href="https://chartrow.com/etfs" target="_blank" rel="noopener">ChartRow</a> ซึ่งเป็นค่าประมาณ ไม่ใช่ตัวเลขทางการของผู้ออกกอง หน้านี้เป็นเครื่องมือติดตามข้อมูลเพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน รายชื่อ ETF เป็นรายการติดตาม ไม่ได้แปลว่าทุกตัวเหมาะกับทุกคน</p>
+  </section>
+</section>
+
+</main>
+</div>
+
+<script>
+/* ===== DATA: replace this block to refresh the page ===== */
+let LATEST = "2026-11-10";
+const E = [
+ {t:"VOO",n:"Vanguard S&P 500",c:"core",th:"หุ้นใหญ่สหรัฐ 500 บริษัท",d:"2026-11-10",p:689.40,pr:{d1:-0.36,d5:-0.60,m1:-3.66,m3:-2.99,ytd:9.93,y1:10.05,y5:61.73},tr:{d1:-0.36,d5:-0.60,m1:-3.66,m3:-2.74,ytd:10.88,y1:11.31,y5:73.49},lo:578.46,hi:718.47,m20:695.80,m50:656.04,er:0.03,y:1.08,aum:"982.8B",iss:"Vanguard",inc:"2010",cg:[12.8,13.2,20.9,11.5,15.1,14.6],hc:504,t10:39,top:[["AAPL",7.9],["NVDA",6.4],["MSFT",6.1],["GOOGL",4.7],["AMZN",4.1]],sec:[["Technology",35.7],["Financials",12.4],["Healthcare",10.4],["Consumer Discretionary",9.8]]},
+ {t:"VTI",n:"Vanguard Total Stock Market",c:"core",th:"หุ้นสหรัฐทั้งตลาด เล็ก กลาง ใหญ่",d:"2026-11-10",p:369.54,pr:{d1:-0.37,d5:-0.45,m1:-3.25,m3:-3.17,ytd:10.22,y1:10.34,y5:54.18},tr:{d1:-0.37,d5:-0.45,m1:-3.25,m3:-2.92,ytd:11.16,y1:11.60,y5:65.27},lo:310.40,hi:385.12,m20:373.00,m50:351.66,er:0.03,y:1.07,aum:"662.4B",iss:"Vanguard",inc:"2001",cg:[13.0,12.9,20.8,10.4,14.5,14.2],hc:3477,t10:34,top:[["AAPL",7.1],["MSFT",5.5],["NVDA",5.4],["GOOGL",4.2],["AMZN",3.6]],sec:[["Technology",33.3],["Financials",12.6],["Healthcare",10.8],["Consumer Discretionary",10.5]]},
+ {t:"VT",n:"Vanguard Total World Stock",c:"core",th:"หุ้นทั่วโลก รวมสหรัฐ",d:"2026-11-10",p:154.94,pr:{d1:-0.48,d5:-0.14,m1:-3.06,m3:-3.75,ytd:9.84,y1:10.07,y5:43.62},tr:{d1:-0.48,d5:-0.14,m1:-3.06,m3:-3.50,ytd:10.78,y1:11.90,y5:58.61},lo:133.65,hi:162.71,m20:157.54,m50:149.01,er:0.06,y:1.56,aum:"73.6B",iss:"Vanguard",inc:"2008",cg:[13.2,14.9,20.0,9.4,12.4,11.0],hc:9762,t10:22,top:[["AAPL",4.3],["MSFT",3.4],["NVDA",3.4],["GOOGL",2.6],["AMZN",2.3]],sec:[["Not on ChartRow",29.3],["Technology",24.0],["Financials",9.9],["Healthcare",7.6]]},
+ {t:"VXUS",n:"Vanguard Total International",c:"core",th:"หุ้นทั่วโลก ไม่รวมสหรัฐ",d:"2026-11-09",p:83.22,pr:{d1:2.84,d5:0.76,m1:-1.89,m3:-4.58,ytd:10.31,y1:12.16,y5:26.30},tr:{d1:2.84,d5:0.76,m1:-1.89,m3:-4.40,ytd:11.12,y1:15.06,y5:47.18},lo:72.11,hi:88.62,m20:85.09,m50:80.81,er:0.07,y:2.39,aum:"123.7B",iss:"Vanguard",inc:"2011",cg:[14.8,19.1,19.2,8.0,9.4,7.1],hc:8490,t10:15,top:[["TSM",3.9],["Samsung Electronics",2.0],["ASML",1.3],["SK Hynix",1.3]],sec:[["Not on ChartRow",73.9],["Technology",8.2],["Financials",5.2],["Healthcare",2.8]]},
+ {t:"QQQ",n:"Invesco QQQ Trust",c:"growth",th:"Nasdaq-100 หุ้นเติบโตขนาดใหญ่",d:"2026-11-09",p:679.35,pr:{d1:3.54,d5:-0.26,m1:-9.57,m3:-6.04,ytd:10.59,y1:11.42,y5:71.85},tr:{d1:3.54,d5:-0.26,m1:-9.57,m3:-5.94,ytd:10.96,y1:11.94,y5:77.06},lo:555.60,hi:762.86,m20:714.24,m50:658.42,er:0.18,y:0.46,aum:"490.1B",iss:"Invesco",inc:"1999",cg:[11.7,15.4,22.2,12.1,20.2,18.8],hc:101,t10:51,top:[["AAPL",8.8],["NVDA",7.4],["MSFT",6.9],["GOOGL",5.5],["AMZN",4.9]],sec:[["Technology",57.0],["Consumer Discretionary",12.0],["Communication Services",11.7],["Consumer Staples",7.4]]},
+ {t:"QQQM",n:"Invesco NASDAQ 100",c:"growth",th:"Nasdaq-100 แบบค่าธรรมเนียมต่ำกว่า QQQ",d:"2026-11-10",p:277.86,pr:{d1:-0.59,d5:-1.55,m1:-10.19,m3:-6.40,ytd:9.86,y1:8.29,y5:73.53},tr:{d1:-0.59,d5:-1.55,m1:-10.19,m3:-6.30,ytd:10.25,y1:8.82,y5:79.10},lo:228.75,hi:314.12,m20:293.04,m50:280.62,er:0.15,y:0.47,aum:"104.4B",iss:"Invesco",inc:"2020",cg:[11.0,15.1,22.0,12.1,null,null],hc:101,t10:50,top:[["AAPL",8.7],["NVDA",6.9],["MSFT",6.7],["GOOGL",5.5],["AMZN",4.9]],sec:[["Technology",56.0],["Consumer Discretionary",12.1],["Communication Services",11.6],["Consumer Staples",7.4]]},
+ {t:"VUG",n:"Vanguard Growth",c:"growth",th:"หุ้นเติบโตขนาดใหญ่สหรัฐ",d:"2026-11-09",p:84.45,pr:{d1:2.77,d5:0.50,m1:-8.18,m3:-5.54,ytd:3.86,y1:4.59,y5:58.15},tr:{d1:2.77,d5:0.50,m1:-8.18,m3:-5.44,ytd:4.20,y1:5.03,y5:62.52},lo:69.63,hi:93.00,m20:87.25,m50:83.06,er:0.04,y:0.41,aum:"211.4B",iss:"Vanguard",inc:"2004",cg:[5.0,11.9,21.2,10.2,17.5,16.0],hc:146,t10:67,top:[["AAPL",14.3],["NVDA",11.5],["MSFT",11.3],["GOOGL",8.4],["AMZN",5.0]],sec:[["Technology",56.2],["Communication Services",13.5],["Consumer Discretionary",12.0],["Healthcare",5.3]]},
+ {t:"SCHG",n:"Schwab U.S. Large-Cap Growth",c:"growth",th:"หุ้นเติบโตขนาดใหญ่สหรัฐ",d:"2026-11-09",p:34.08,pr:{d1:2.84,d5:0.29,m1:-7.24,m3:-4.75,ytd:4.48,y1:5.32,y5:65.83},tr:{d1:2.84,d5:0.29,m1:-7.24,m3:-4.65,ytd:4.82,y1:5.76,y5:69.61},lo:27.96,hi:37.10,m20:34.84,m50:33.15,er:0.04,y:0.41,aum:"63B",iss:"Schwab",inc:"2009",cg:[5.7,11.2,21.3,11.2,18.2,16.7],hc:191,t10:54,top:[["AAPL",10.4],["NVDA",8.7],["MSFT",8.2],["GOOGL",6.1],["AMZN",5.3]],sec:[["Technology",45.7],["Communication Services",11.5],["Consumer Discretionary",11.3],["Healthcare",11.1]]},
+ {t:"VGT",n:"Vanguard Information Technology",c:"tech",th:"หุ้นเทคโนโลยีสหรัฐทั้งกลุ่ม",d:"2026-11-09",p:111.98,pr:{d1:3.20,d5:-1.63,m1:-12.50,m3:-7.80,ytd:18.85,y1:17.66,y5:99.03},tr:{d1:3.20,d5:-1.63,m1:-12.50,m3:-7.69,ytd:19.25,y1:18.18,y5:105.51},lo:83.09,hi:130.66,m20:118.63,m50:104.90,er:0.09,y:0.42,aum:"170.7B",iss:"Vanguard",inc:"2004",cg:[17.9,20.2,26.8,15.5,23.4,20.4],hc:317,t10:64,top:[["AAPL",18.9],["NVDA",15.5],["MSFT",13.1],["AVGO",3.8],["MU",3.4]],sec:[["Technology",97.0],["Industrials",1.0]]},
+ {t:"XLK",n:"Technology Select Sector SPDR",c:"tech",th:"หุ้นเทคใน S&P 500",d:"2026-11-09",p:170.88,pr:{d1:3.73,d5:-1.92,m1:-14.04,m3:-9.09,ytd:18.69,y1:18.60,y5:104.29},tr:{d1:3.73,d5:-1.92,m1:-14.04,m3:-8.99,ytd:19.12,y1:19.21,y5:111.98},lo:126.68,hi:203.25,m20:184.50,m50:161.59,er:0.08,y:0.49,aum:"123.9B",iss:"State Street",inc:"1998",cg:[18.9,20.6,24.6,16.2,23.3,20.2],hc:74,t10:67,top:[["AAPL",17.1],["NVDA",14.4],["MSFT",13.5],["AMD",5.1],["AVGO",5.0]],sec:[["Technology",99.1]]},
+ {t:"SMH",n:"VanEck Semiconductor",c:"tech",th:"เซมิคอนดักเตอร์ 25 บริษัท",d:"2026-11-09",p:487.41,pr:{d1:5.05,d5:-4.11,m1:-19.21,m3:-16.35,ytd:35.34,y1:40.01,y5:222.43},tr:{d1:5.05,d5:-4.11,m1:-19.21,m3:-16.35,ytd:35.34,y1:40.45,y5:232.31},lo:315.05,hi:671.83,m20:571.37,m50:466.33,er:0.35,y:0.23,aum:"77.2B",iss:"VanEck",inc:"2011",cg:[39.7,37.3,46.3,27.2,31.6,26.9],hc:25,t10:73,top:[["NVDA",21.0],["TSM",10.2],["AMD",6.6],["AVGO",6.0],["TXN",5.5]],sec:[["Technology",98.5]]},
+ {t:"SOXX",n:"iShares Semiconductor",c:"tech",th:"เซมิคอนดักเตอร์ 30 บริษัท",d:"2026-11-10",p:146.45,pr:{d1:-0.21,d5:-5.52,m1:-21.46,m3:-17.01,ytd:45.89,y1:45.48,y5:159.54},tr:{d1:-0.21,d5:-5.52,m1:-21.46,m3:-16.95,ytd:46.15,y1:45.95,y5:169.59},lo:86.81,hi:218.65,m20:177.61,m50:139.60,er:0.33,y:0.28,aum:"47.8B",iss:"BlackRock",inc:"2001",cg:[48.8,38.2,39.3,21.2,29.0,25.1],hc:30,t10:62,top:[["AMD",10.2],["NVDA",8.2],["MU",7.6],["AVGO",7.6],["TSM",5.1]],sec:[["Technology",94.2],["Industrials",1.3]]},
+ {t:"BOTZ",n:"Global X Robotics & AI",c:"theme",th:"หุ้นหุ่นยนต์และ AI ทั่วโลก",d:"2026-11-10",p:31.57,pr:{d1:-0.97,d5:-2.32,m1:-11.02,m3:-15.63,ytd:-12.86,y1:-13.67,y5:-16.50},tr:{d1:-0.97,d5:-2.32,m1:-11.02,m3:-15.63,ytd:-12.82,y1:-13.26,y5:-15.42},lo:30.54,hi:41.71,m20:35.51,m50:36.29,er:0.68,y:0.56,aum:"3.4B",iss:"Global X",inc:"2016",cg:[-11.7,-2.9,9.0,-3.6,8.0,null],hc:60,t10:61,top:[["Keyence",11.2],["ABB",9.5],["Fanuc",7.9],["NVDA",7.7],["ISRG",7.5]],sec:[["Not on ChartRow",66.3],["Technology",13.8],["Industrials",8.2],["Healthcare",7.8]]},
+ {t:"CIBR",n:"First Trust Nasdaq Cybersecurity",c:"theme",th:"หุ้นความปลอดภัยไซเบอร์",d:"2026-11-09",p:94.68,pr:{d1:4.00,d5:-2.14,m1:-13.93,m3:-3.24,ytd:32.51,y1:25.60,y5:69.01},tr:{d1:4.00,d5:-2.14,m1:-13.93,m3:-3.24,ytd:32.86,y1:26.28,y5:72.86},lo:60.07,hi:110.68,m20:95.55,m50:81.05,er:0.58,y:0.42,aum:"13.8B",iss:"First Trust",inc:"2015",cg:[25.8,22.2,27.1,11.5,17.4,null],hc:43,t10:56,top:[["CRWD",9.4],["PANW",8.9],["FTNT",6.7],["CSCO",6.2],["AVGO",5.4]],sec:[["Technology",89.1],["Communication Services",2.0],["Industrials",2.0]]},
+ {t:"ITA",n:"iShares U.S. Aerospace & Defense",c:"theme",th:"การบิน อวกาศ และกลาโหมสหรัฐ",d:"2026-11-10",p:72.35,pr:{d1:0.95,d5:0.41,m1:5.03,m3:-13.57,ytd:1.10,y1:2.88,y5:101.79},tr:{d1:0.95,d5:0.41,m1:5.03,m3:-13.47,ytd:1.35,y1:3.14,y5:109.94},lo:65.24,hi:85.53,m20:75.54,m50:74.48,er:0.37,y:0.84,aum:"14.4B",iss:"BlackRock",inc:"2006",cg:[4.0,18.6,24.7,16.1,12.7,14.8],hc:47,t10:79,top:[["GE",23.0],["RTX",17.5],["BA",8.0],["LMT",5.4],["GD",5.0]],sec:[["Industrials",94.9],["Technology",1.7],["Energy",1.6]]},
+ {t:"SCHD",n:"Schwab U.S. Dividend Equity",c:"def",th:"หุ้นปันผลคุณภาพสหรัฐ",d:"2026-11-09",p:35.65,pr:{d1:1.36,d5:-0.70,m1:7.90,m3:5.16,ytd:29.97,y1:33.42,y5:35.93},tr:{d1:1.36,d5:-0.70,m1:7.90,m3:6.00,ytd:33.16,y1:38.10,y5:61.51},lo:26.49,hi:36.38,m20:33.66,m50:30.98,er:0.06,y:2.96,aum:"112.3B",iss:"Schwab",inc:"2011",cg:[37.4,14.7,19.7,9.9,13.4,13.4],hc:99,t10:42,top:[["AMGN",5.0],["MRK",4.7],["ABT",4.6],["KO",4.4],["PG",4.3]],sec:[["Healthcare",21.1],["Consumer Staples",20.0],["Energy",14.9],["Industrials",11.3]]},
+ {t:"GLD",n:"SPDR Gold Shares",c:"def",th:"ทองคำแท่ง",d:"2026-11-10",p:369.36,pr:{d1:-2.68,d5:2.81,m1:-3.96,m3:-8.24,ytd:-6.80,y1:-2.38,y5:113.32},tr:{d1:-2.68,d5:2.81,m1:-3.96,m3:-8.24,ytd:-6.80,y1:-2.38,y5:113.32},lo:354.67,hi:509.70,m20:386.03,m50:401.14,er:0.40,y:null,aum:null,iss:"State Street",inc:"2004",cg:[0.3,21.9,27.1,16.2,12.2,5.1],hc:null,t10:null,top:null,sec:null},
+ {t:"BND",n:"Vanguard Total Bond Market",c:"def",th:"ตราสารหนี้สหรัฐคุณภาพดี",d:"2026-11-09",p:71.62,pr:{d1:0.04,d5:0.41,m1:1.99,m3:-1.08,ytd:-3.31,y1:-3.65,y5:-16.61},tr:{d1:0.04,d5:0.41,m1:2.36,m3:-0.02,ytd:0.03,y1:0.33,y5:-1.17},lo:69.65,hi:75.23,m20:71.99,m50:73.28,er:0.03,y:4.12,aum:"156B",iss:"Vanguard",inc:"2007",cg:[0.3,3.0,4.8,-0.1,1.7,1.9],hc:1800,t10:70,top:[["US Treasury Note/Bond",48.2],["Fannie Mae Pool",7.2],["Freddie Mac Pool",6.2],["Ginnie Mae II Pool",4.8]],sec:null}
+];
+const ST=[
+ {"t":"AAPL","n":"Apple","d":"2026-11-10","p":348.51,"pr":{"d1":-0.62,"d5":5.0,"m1":3.53,"m3":13.06,"ytd":28.19,"y1":29.35,"y5":135.61},"lo":243.42,"hi":355.38,"m50":287.6,"mcap":"5.1T","sector":"Technology","pe":38.8,"fpe":32.2,"fcfy":2.69,"nm":27.6,"roe":117.92,"de":0.61,"rev5":5.5,"eps5":9.9,"y":0.31,"beta":1.07},
+ {"t":"MSFT","n":"Microsoft","d":"2026-11-10","p":533.16,"pr":{"d1":-2.2,"d5":2.34,"m1":-0.36,"m3":5.36,"ytd":10.24,"y1":5.37,"y5":61.17},"lo":349.2,"hi":559.15,"m50":460.93,"mcap":"4T","sector":"Technology","pe":27.8,"fpe":22.5,"fcfy":1.6,"nm":41.2,"roe":30.3,"de":0.07,"rev5":14.6,"eps5":17.4,"y":0.74,"beta":1.12},
+ {"t":"NVDA","n":"NVIDIA","d":"2026-11-10","p":168.89,"pr":{"d1":-5.47,"d5":-18.29,"m1":-26.34,"m3":-22.37,"ytd":-9.44,"y1":-15.15,"y5":473.31},"lo":164.27,"hi":243.37,"m50":199.15,"mcap":"4.1T","sector":"Technology","pe":21.4,"fpe":11.1,"fcfy":2.6,"nm":63.66,"roe":84.23,"de":0.14,"rev5":66.9,"eps5":95.2,"y":0.59,"beta":2.22},
+ {"t":"GOOGL","n":"Alphabet","d":"2026-11-10","p":287.38,"pr":{"d1":-0.27,"d5":2.62,"m1":-18.28,"m3":-19.62,"ytd":-8.19,"y1":-0.94,"y5":96.98},"lo":270.7,"hi":408.61,"m50":321.61,"mcap":"3.5T","sector":"Communication Services","pe":14.99,"fpe":18.6,"fcfy":0.5,"nm":50.0,"roe":34.8,"de":0.18,"rev5":17.2,"eps5":29.8,"y":0.31,"beta":1.25},
+ {"t":"AMZN","n":"Amazon","d":"2026-11-10","p":270.87,"pr":{"d1":1.48,"d5":8.05,"m1":3.22,"m3":-2.6,"ytd":17.35,"y1":9.05,"y5":55.58},"lo":196.0,"hi":287.2,"m50":241.02,"mcap":"2.9T","sector":"Consumer Discretionary","pe":21.9,"fpe":24.8,"fcfy":-1.7,"nm":16.9,"roe":22.0,"de":0.28,"rev5":13.2,"eps5":28.0,"y":null,"beta":1.48},
+ {"t":"META","n":"Meta Platforms","d":"2026-11-11","p":628.77,"pr":{"d1":-1.97,"d5":-0.2,"m1":-12.51,"m3":4.95,"ytd":-4.74,"y1":0.27,"y5":91.85},"lo":520.26,"hi":779.82,"m50":646.91,"mcap":"1.6T","sector":"Communication Services","pe":21.36,"fpe":17.7,"fcfy":1.5,"nm":31.1,"roe":27.6,"de":0.3,"rev5":18.5,"eps5":18.4,"y":0.33,"beta":1.24},
+ {"t":"AVGO","n":"Broadcom","d":"2026-11-11","p":345.45,"pr":{"d1":4.06,"d5":6.14,"m1":-4.45,"m3":-16.98,"ytd":-0.19,"y1":-1.85,"y5":521.98},"lo":289.77,"hi":495.0,"m50":363.37,"mcap":"1.6T","sector":"Technology","pe":43.1,"fpe":17.7,"fcfy":2.2,"nm":42.9,"roe":38.4,"de":0.57,"rev5":21.7,"eps5":49.8,"y":0.75,"beta":1.46},
+ {"t":"LLY","n":"Eli Lilly","d":"2026-11-10","p":1432.29,"pr":{"d1":1.44,"d5":1.63,"m1":21.46,"m3":16.26,"ytd":33.28,"y1":48.17,"y5":441.2},"lo":850.51,"hi":1453.0,"m50":1058.07,"mcap":"1.3T","sector":"Healthcare","pe":46.5,"fpe":27.9,"fcfy":1.54,"nm":31.9,"roe":68.49,"de":1.17,"rev5":21.6,"eps5":27.6,"y":0.48,"beta":0.5},
+ {"t":"V","n":"Visa","d":"2026-11-10","p":423.0,"pr":{"d1":0.2,"d5":0.61,"m1":9.74,"m3":17.07,"ytd":20.61,"y1":26.33,"y5":96.23},"lo":293.89,"hi":442.23,"m50":344.28,"mcap":"784.4B","sector":"Financials","pe":33.37,"fpe":24.6,"fcfy":3.3,"nm":51.2,"roe":65.1,"de":0.54,"rev5":13.7,"eps5":17.0,"y":0.63,"beta":0.76},
+ {"t":"BRK-B","n":"Berkshire Hathaway","d":"2026-11-10","p":583.34,"pr":{"d1":1.41,"d5":4.72,"m1":13.13,"m3":10.18,"ytd":16.05,"y1":17.38,"y5":104.45},"lo":464.01,"hi":586.45,"m50":499.51,"mcap":"1.2T","sector":"Financials","pe":16.08,"fpe":26.0,"fcfy":2.2,"nm":19.5,"roe":10.1,"de":null,"rev5":8.6,"eps5":11.8,"y":null,"beta":0.61},
+ {"t":"WMT","n":"Walmart","d":"2026-11-10","p":125.55,"pr":{"d1":-0.09,"d5":0.55,"m1":12.75,"m3":11.44,"ytd":12.69,"y1":22.58,"y5":153.74},"lo":98.88,"hi":135.16,"m50":115.43,"mcap":"996.1B","sector":"Consumer Staples","pe":45.1,"fpe":38.9,"fcfy":1.5,"nm":3.0,"roe":22.5,"de":0.37,"rev5":5.0,"eps5":11.5,"y":0.79,"beta":0.6},
+ {"t":"JNJ","n":"Johnson & Johnson","d":"2026-11-10","p":280.78,"pr":{"d1":-0.47,"d5":5.49,"m1":7.4,"m3":7.25,"ytd":35.68,"y1":49.03,"y5":70.93},"lo":185.12,"hi":283.25,"m50":232.97,"mcap":"675.9B","sector":"Healthcare","pe":41.99,"fpe":24.3,"fcfy":3.2,"nm":16.2,"roe":19.7,"de":0.44,"rev5":2.7,"eps5":14.9,"y":1.91,"beta":0.24},
+ {"t":"TSM","n":"TSMC (ADR)","d":"2026-11-10","p":396.48,"pr":{"d1":2.02,"d5":-2.06,"m1":-12.54,"m3":-5.25,"ytd":30.47,"y1":34.28,"y5":235.43},"lo":266.82,"hi":487.47,"m50":369.0,"mcap":"2.1T","sector":"Technology","pe":37.8,"fpe":17.0,"fcfy":null,"nm":44.5,"roe":31.8,"de":0.16,"rev5":21.9,"eps5":25.7,"y":1.12,"beta":1.38},
+ {"t":"ASML","n":"ASML (ADR)","d":"2026-11-10","p":1507.85,"pr":{"d1":-0.36,"d5":-2.85,"m1":-15.31,"m3":-13.02,"ytd":40.94,"y1":45.15,"y5":84.37},"lo":946.11,"hi":1989.57,"m50":1426.19,"mcap":"581.2B","sector":"Technology","pe":53.42,"fpe":22.4,"fcfy":2.16,"nm":29.4,"roe":47.2,"de":0.14,"rev5":18.3,"eps5":23.7,"y":0.56,"beta":1.77},
+ {"t":"MU","n":"Micron","d":"2026-11-10","p":725.11,"pr":{"d1":-1.1,"d5":-15.2,"m1":-29.53,"m3":-15.78,"ytd":154.06,"y1":186.27,"y5":887.75},"lo":192.59,"hi":1255.0,"m50":593.24,"mcap":"820.4B","sector":"Technology","pe":9.8,"fpe":3.5,"fcfy":4.9,"nm":63.8,"roe":61.4,"de":0.03,"rev5":36.9,"eps5":70.6,"y":0.08,"beta":2.2},
+ {"t":"AMD","n":"AMD","d":"2026-11-10","p":515.21,"pr":{"d1":1.3,"d5":6.47,"m1":-15.28,"m3":9.72,"ytd":140.57,"y1":111.17,"y5":268.35},"lo":188.22,"hi":658.52,"m50":354.82,"mcap":"845B","sector":"Technology","pe":110.95,"fpe":25.8,"fcfy":0.7,"nm":16.8,"roe":11.1,"de":0.1,"rev5":28.8,"eps5":5.2,"y":null,"beta":2.48},
+ {"t":"TSLA","n":"Tesla","d":"2026-11-11","p":390.8,"pr":{"d1":2.9,"d5":1.46,"m1":2.12,"m3":17.42,"ytd":-13.1,"y1":-11.11,"y5":10.24},"lo":297.38,"hi":498.83,"m50":402.93,"mcap":"1.5T","sector":"Consumer Discretionary","pe":430.0,"fpe":179.2,"fcfy":0.21,"nm":3.11,"roe":3.6,"de":0.09,"rev5":24.6,"eps5":38.8,"y":null,"beta":1.82},
+ {"t":"JPM","n":"JPMorgan Chase","d":"2026-11-10","p":342.07,"pr":{"d1":0.0,"d5":1.21,"m1":2.73,"m3":-4.93,"ytd":6.16,"y1":7.95,"y5":104.07},"lo":279.1,"hi":366.5,"m50":320.99,"mcap":"908.4B","sector":"Financials","pe":14.4,"fpe":13.4,"fcfy":null,"nm":32.48,"roe":17.72,"de":1.24,"rev5":8.7,"eps5":17.7,"y":1.93,"beta":0.99},
+ {"t":"MA","n":"Mastercard","d":"2026-11-10","p":658.84,"pr":{"d1":0.46,"d5":1.8,"m1":11.83,"m3":16.99,"ytd":15.41,"y1":19.15,"y5":84.06},"lo":464.52,"hi":681.99,"m50":547.51,"mcap":"574B","sector":"Financials","pe":33.92,"fpe":28.3,"fcfy":3.2,"nm":46.7,"roe":250.7,"de":3.29,"rev5":16.5,"eps5":21.0,"y":0.53,"beta":0.73},
+ {"t":"COST","n":"Costco","d":"2026-11-10","p":1066.14,"pr":{"d1":0.0,"d5":4.6,"m1":12.59,"m3":11.9,"ytd":23.63,"y1":16.45,"y5":110.9},"lo":844.06,"hi":1096.5,"m50":956.71,"mcap":"472.4B","sector":"Consumer Staples","pe":51.4,"fpe":42.6,"fcfy":1.99,"nm":3.04,"roe":25.77,"de":0.11,"rev5":9.1,"eps5":13.0,"y":0.55,"beta":0.87},
+ {"t":"ABBV","n":"AbbVie","d":"2026-11-10","p":293.89,"pr":{"d1":0.2,"d5":2.76,"m1":6.3,"m3":18.52,"ytd":28.62,"y1":34.37,"y5":151.73},"lo":190.75,"hi":302.93,"m50":235.6,"mcap":"519.5B","sector":"Healthcare","pe":50.23,"fpe":18.0,"fcfy":4.1,"nm":15.7,"roe":null,"de":null,"rev5":6.0,"eps5":-2.8,"y":2.35,"beta":0.29}
+];
+/* ===== END DATA ===== */
+
+const PERIODS=[["d1","1D","1 วัน",3],["d5","5D","5 วัน",6],["m1","1M","1 เดือน",14],["m3","3M","3 เดือน",18],["ytd","YTD","ตั้งแต่ต้นปี",35],["y1","1Y","1 ปี",40],["y5","5Y","5 ปี",130]];
+const CATS=[["all","ทั้งหมด"],["core","ตลาดกว้าง"],["growth","Growth"],["tech","เทคและชิป"],["theme","ธีม"],["def","ปันผล ทอง ตราสารหนี้"],["star","★ ที่ติดตาม"]];
+const CG_LAB=["1 ปี","2 ปี","3 ปี","5 ปี","10 ปี","15 ปี"];
+const MON=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const $=id=>document.getElementById(id);
+
+const S={period:"m1",mode:"pr",cat:"all",q:"",sortKey:"period",sortDir:-1,sel:"VOO",stars:new Set()};
+try{const r=JSON.parse(localStorage.getItem("etfRadar")||"{}");
+  if(Array.isArray(r.stars))S.stars=new Set(r.stars);
+  if(r.period&&PERIODS.some(p=>p[0]===r.period))S.period=r.period;
+  if(r.mode==="tr"||r.mode==="pr")S.mode=r.mode;}catch(e){}
+function save(){try{localStorage.setItem("etfRadar",JSON.stringify({stars:[...S.stars],period:S.period,mode:S.mode}));}catch(e){}touch();}
+
+const thDate=d=>{const[y,m,dd]=d.split("-").map(Number);return dd+" "+MON[m-1]+" "+y;};
+const pct=(v,dp)=>v==null?"—":(v>0?"+":"")+v.toFixed(dp==null?(Math.abs(v)>=100?1:2):dp)+"%";
+const cls=v=>v>0?"up":v<0?"down":"muted";
+const val=(e,k)=>e[S.mode][k];
+const offHigh=e=>(e.p/e.hi-1)*100;
+function zone(e){const o=offHigh(e);
+  if(o>=-5)return["ใกล้จุดสูงสุด","g"]; if(o>=-10)return["ย่อตัว",""]; if(o>=-20)return["ปรับฐาน","a"]; return["ตลาดหมี","r"];}
+function heat(v,scale){if(v==null)return"";const a=Math.min(Math.abs(v)/scale,1)*.26+.03;
+  return "background:rgba(var(--"+(v>=0?"up":"down")+"-rgb),"+a.toFixed(3)+")";}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function rows(){
+  const q=S.q.trim().toLowerCase();
+  let r=E.filter(e=>(S.cat==="all"||(S.cat==="star"?S.stars.has(e.t):e.c===S.cat))&&(!q||e.t.toLowerCase().includes(q)||e.n.toLowerCase().includes(q)||e.th.includes(q)));
+  const key=S.sortKey, get=e=>key==="period"?val(e,S.period):key==="off"?offHigh(e):key==="er"?e.er:key==="y"?(e.y==null?-1:e.y):key==="p"?e.p:key==="t"?e.t:val(e,key);
+  r.sort((a,b)=>{const x=get(a),y=get(b);return (x<y?-1:x>y?1:0)*S.sortDir;});
+  return r;
+}
+
+function renderControls(){
+  $("periods").innerHTML=PERIODS.map(p=>'<button data-p="'+p[0]+'" aria-pressed="'+(S.period===p[0])+'" title="'+p[2]+'">'+p[1]+'</button>').join("");
+  $("mode-pr").setAttribute("aria-pressed",S.mode==="pr"); $("mode-tr").setAttribute("aria-pressed",S.mode==="tr");
+  $("cats").innerHTML=CATS.map(c=>'<button data-c="'+c[0]+'" aria-pressed="'+(S.cat===c[0])+'">'+c[1]+(c[0]==="star"?" ("+S.stars.size+")":"")+'</button>').join("");
+}
+
+function renderSummary(r){
+  const P=PERIODS.find(p=>p[0]===S.period);
+  if(!r.length){$("sum").innerHTML='<div><span class="lab">ไม่มี ETF ในตัวกรองนี้</span></div>';return;}
+  const v=r.map(e=>val(e,S.period)), avg=v.reduce((a,b)=>a+b,0)/v.length, upN=v.filter(x=>x>0).length;
+  const by=[...r].sort((a,b)=>val(b,S.period)-val(a,S.period)), best=by[0], worst=by[by.length-1];
+  $("sum").innerHTML=
+   '<div><span class="lab">ค่าเฉลี่ย '+P[2]+'</span><span class="big '+cls(avg)+'">'+pct(avg)+'</span><span class="who">จาก '+r.length+' กอง</span></div>'+
+   '<div><span class="lab">ขึ้น / ลง</span><span class="big"><span class="up">'+upN+'</span> <span class="muted">/</span> <span class="down">'+(r.length-upN)+'</span></span><span class="who">ในช่วง '+P[2]+'</span></div>'+
+   '<div><span class="lab">ดีที่สุด</span><span class="big '+cls(val(best,S.period))+'">'+pct(val(best,S.period))+'</span><span class="who">'+best.t+' · '+esc(best.th)+'</span></div>'+
+   '<div><span class="lab">แย่ที่สุด</span><span class="big '+cls(val(worst,S.period))+'">'+pct(val(worst,S.period))+'</span><span class="who">'+worst.t+' · '+esc(worst.th)+'</span></div>';
+}
+
+function renderTable(r){
+  const arrow=k=>{const on=(S.sortKey===k)||(S.sortKey==="period"&&k===S.period);return on?(S.sortDir<0?" ↓":" ↑"):"";};
+  const h=(k,lab,c)=>'<th class="'+(c||"")+((k===S.period||(S.sortKey===k))?" on":"")+'"><button data-s="'+k+'">'+lab+arrow(k)+'</button></th>';
+  $("thead").innerHTML='<th></th>'+h("t","ETF","l name")+h("p","ราคา")+PERIODS.map(p=>h(p[0],p[1])).join("")+h("off","จากจุดสูงสุด 52W")+'<th class="l">สถานะ</th>'+h("er","ค่าธรรมเนียม")+h("y","ปันผล");
+  const emptyMsg=S.cat==="star"?"ยังไม่มี ETF ที่ติดตาม กดดาว ☆ หน้าแถวเพื่อเพิ่ม":"ไม่พบ ETF ที่ตรงกับคำค้น",PS=PERIODS.find(p=>p[0]===S.period);
+  $("mlist").innerHTML=r.length?r.map(e=>{const v=val(e,S.period),st=S.stars.has(e.t);
+    return '<div class="mrow'+(e.t===S.sel?" sel":"")+'" data-t="'+e.t+'" tabindex="0" role="button" aria-label="ดูรายละเอียด '+e.t+'"><button class="star" type="button" data-star="'+e.t+'" aria-pressed="'+st+'" aria-label="ติดตาม '+e.t+'">'+(st?"★":"☆")+'</button>'+
+      '<div><span class="tk">'+e.t+'</span><span class="nm">'+esc(e.th)+'</span></div>'+
+      '<div class="r"><span class="pill '+cls(v)+'" style="'+heat(v,PS[3])+'">'+pct(v)+'</span><span class="px">$'+e.p.toFixed(2)+'</span></div></div>';}).join(""):'<p class="empty">'+emptyMsg+'</p>';
+  if(!r.length){$("tbody").innerHTML='<tr><td colspan="14" class="empty">'+(S.cat==="star"?"ยังไม่มี ETF ที่ติดตาม กดดาว ☆ หน้าแถวเพื่อเพิ่ม":"ไม่พบ ETF ที่ตรงกับคำค้น")+'</td></tr>';return;}
+  $("tbody").innerHTML=r.map(e=>{const z=zone(e),o=offHigh(e),st=S.stars.has(e.t);
+    return '<tr data-t="'+e.t+'" class="'+(e.t===S.sel?"sel":"")+'">'+
+     '<td><button class="star" data-star="'+e.t+'" aria-pressed="'+st+'" aria-label="ติดตาม '+e.t+'">'+(st?"★":"☆")+'</button></td>'+
+     '<td class="l name"><span class="tk">'+e.t+'</span><span class="nm">'+esc(e.th)+'</span></td>'+
+     '<td class="num">'+e.p.toFixed(2)+(e.d!==LATEST?'<span class="old">ปิด '+thDate(e.d).replace(/ \d{4}$/,"")+'</span>':"")+'</td>'+
+     PERIODS.map(p=>{const v=val(e,p[0]);return '<td class="heat '+cls(v)+'" style="'+heat(v,p[3])+'">'+pct(v)+'</td>';}).join("")+
+     '<td class="num '+(o<-10?"down":"")+'">'+pct(o,1)+'</td>'+
+     '<td class="l"><span class="tag '+z[1]+'">'+z[0]+'</span></td>'+
+     '<td class="num">'+e.er.toFixed(2)+'%</td>'+
+     '<td class="num">'+(e.y==null?"—":e.y.toFixed(2)+"%")+'</td></tr>';}).join("");
+}
+
+function barRow(k,v,max,extra){const w=max?Math.abs(v)/max*50:0;
+  return '<span class="k">'+k+'</span><span class="trk"><span class="fill" style="'+(v>=0?"left:50%":"right:50%")+';width:'+w.toFixed(2)+'%;background:var(--'+(v>=0?"up":"down")+')"></span></span><span class="v '+cls(v)+'">'+pct(v)+'</span>'+(extra||"");}
+
+function renderRank(r){
+  const P=PERIODS.find(p=>p[0]===S.period);
+  $("rankTitle").textContent="จัดอันดับ "+P[2]+(S.mode==="tr"?" (รวมปันผล)":" (เฉพาะราคา)");
+  const by=[...r].sort((a,b)=>val(b,S.period)-val(a,S.period)), max=Math.max(...by.map(e=>Math.abs(val(e,S.period))),0.01);
+  $("rank").innerHTML=by.length?by.map(e=>'<button class="bar'+(e.t===S.sel?" cur":"")+'" data-t="'+e.t+'" title="'+esc(e.n)+'">'+barRow(e.t,val(e,S.period),max)+'</button>').join(""):'<p class="muted">ไม่มีข้อมูลในตัวกรองนี้</p>';
+}
+
+function renderDetail(){
+  const e=E.find(x=>x.t===S.sel)||E[0], z=zone(e), o=offHigh(e), above=e.p>=e.m50;
+  const pos=Math.max(0,Math.min(1,(e.p-e.lo)/(e.hi-e.lo)))*100, mpos=(e.m50-e.lo)/(e.hi-e.lo)*100;
+  const max=Math.max(...PERIODS.map(p=>Math.abs(e[S.mode][p[0]])),0.01);
+  const other=S.mode==="pr"?"tr":"pr";
+  let h='<div class="dhead"><div><h2><span class="num">'+e.t+'</span> · '+esc(e.n)+'</h2><p class="muted">'+esc(e.th)+' · ราคาปิด '+thDate(e.d)+'</p></div>'+
+   '<div style="text-align:right"><div class="px">$'+e.p.toFixed(2)+'</div><span class="num '+cls(e.pr.d1)+'">'+pct(e.pr.d1)+' วันล่าสุด</span></div></div>'+
+   '<div class="tags"><span class="tag '+z[1]+'">'+z[0]+' '+pct(o,1)+' จากจุดสูงสุด</span><span class="tag '+(above?"g":"r")+'">'+(above?"ราคาอยู่เหนือ":"ราคาอยู่ใต้")+' MA50</span>'+(e.t10!=null?'<span class="tag '+(e.t10>=60?"a":"")+'">10 อันดับแรก '+e.t10+'% ของกอง</span>':"")+'</div>';
+  h+='<div><h3>ผลตอบแทนแต่ละช่วง '+(S.mode==="tr"?"(รวมปันผล)":"(เฉพาะราคา)")+'</h3><div class="bars" style="margin-top:8px">'+
+   PERIODS.map(p=>'<div class="bar'+(p[0]===S.period?" cur":"")+'" title="'+(other==="tr"?"รวมปันผล ":"เฉพาะราคา ")+pct(e[other][p[0]])+'">'+barRow(p[1],e[S.mode][p[0]],max)+'</div>').join("")+'</div></div>';
+  h+='<div class="range"><h3>กรอบราคา 52 สัปดาห์</h3><div class="rtrk">'+(mpos>=0&&mpos<=100?'<u style="left:'+mpos.toFixed(1)+'%" title="MA50"></u>':"")+'<i style="left:'+pos.toFixed(1)+'%"></i></div>'+
+   '<div class="rlab"><span class="num">ต่ำสุด $'+e.lo.toFixed(2)+'</span><span>MA50 <span class="num">$'+e.m50.toFixed(2)+'</span></span><span class="num">สูงสุด $'+e.hi.toFixed(2)+'</span></div></div>';
+  h+='<div><h3>เฉลี่ยต่อปี (CAGR รวมปันผล)</h3><div class="cagr" style="margin-top:8px">'+e.cg.map((v,i)=>'<div><span>'+CG_LAB[i]+'</span><b class="'+(v==null?"muted":cls(v))+'">'+(v==null?"—":pct(v,1))+'</b></div>').join("")+'</div></div>';
+  h+='<div class="facts">'+
+   '<div><span>ค่าธรรมเนียมต่อปี</span><b>'+e.er.toFixed(2)+'%</b></div>'+
+   '<div><span>ต่อเงินลงทุน 100,000 บาท</span><b>'+Math.round(e.er*1000).toLocaleString("th-TH")+' บาท/ปี</b></div>'+
+   '<div><span>อัตราปันผล</span><b>'+(e.y==null?"ไม่จ่าย":e.y.toFixed(2)+"%")+'</b></div>'+
+   '<div><span>ขนาดกอง</span><b>'+(e.aum?"$"+e.aum:"—")+'</b></div>'+
+   '<div><span>จำนวนหลักทรัพย์</span><b>'+(e.hc==null?"—":e.hc.toLocaleString("th-TH"))+'</b></div>'+
+   '<div><span>ผู้ออก · เริ่มปี</span><b>'+esc(e.iss)+' · '+e.inc+'</b></div></div>';
+  if(e.top||e.sec){h+='<div class="cols">';
+    if(e.top){const m=Math.max(...e.top.map(x=>x[1]));h+='<div><h3>ถือมากที่สุด</h3><div class="hold">'+e.top.map(x=>'<div><span>'+esc(x[0])+'</span><span><em style="width:'+(x[1]/m*100).toFixed(0)+'%"></em></span><b>'+x[1].toFixed(1)+'%</b></div>').join("")+'</div></div>';}
+    if(e.sec){const m=Math.max(...e.sec.map(x=>x[1]));h+='<div><h3>กลุ่มอุตสาหกรรม</h3><div class="hold">'+e.sec.map(x=>'<div><span>'+esc(x[0]==="Not on ChartRow"?"อื่น ๆ / นอกสหรัฐ":x[0])+'</span><span><em style="width:'+(x[1]/m*100).toFixed(0)+'%"></em></span><b>'+x[1].toFixed(1)+'%</b></div>').join("")+'</div></div>';}
+    h+='</div>';}
+  else h+='<p class="muted" style="font-size:13px">กองนี้ถือทองคำแท่งโดยตรง จึงไม่มีรายชื่อหุ้นหรือกลุ่มอุตสาหกรรม</p>';
+  $("detail").innerHTML=h;
+  const c10=e.cg[4], use=$("dcaUse");
+  if(c10!=null&&c10>0){use.hidden=false;use.textContent="ใช้ค่าเฉลี่ย 10 ปีของ "+e.t+" ("+c10.toFixed(1)+"%)";use.dataset.r=c10;}else use.hidden=true;
+}
+
+/* DCA */
+function dcaSeries(amt,years,rate){const rm=Math.pow(1+rate/100,1/12)-1;let v=0;const out=[{y:0,v:0,c:0}];
+  for(let m=1;m<=years*12;m++){v=(v+amt)*(1+rm);if(m%12===0)out.push({y:m/12,v:v,c:amt*m});}return out;}
+const baht=n=>Math.round(n).toLocaleString("th-TH");
+function renderDCA(){
+  const amt=Math.max(0,parseFloat($("dcaAmt").value)||0), years=+$("dcaYears").value, rate=+$("dcaRate").value;
+  $("dcaYearsOut").textContent=years+" ปี"; $("dcaRateOut").textContent=rate.toFixed(1)+"%";
+  const s=dcaSeries(amt,years,rate), last=s[s.length-1];
+  $("dcaOut").innerHTML='<div><span>เงินต้นสะสม</span><b>'+baht(last.c)+' บาท</b></div><div><span>มูลค่าปลายทาง</span><b style="color:var(--accent)">'+baht(last.v)+' บาท</b></div><div><span>ส่วนที่งอกเงย</span><b class="'+cls(last.v-last.c)+'">'+baht(last.v-last.c)+' บาท</b></div>';
+  const W=720,H=220,L=8,R=8,T=14,B=24,max=Math.max(last.v,last.c,1);
+  const x=y=>L+(W-L-R)*y/years, yy=v=>T+(H-T-B)*(1-v/max);
+  const line=k=>s.map((p,i)=>(i?"L":"M")+x(p.y).toFixed(1)+" "+yy(p[k]).toFixed(1)).join(" ");
+  const short=v=>v>=1e6?(v/1e6).toFixed(v>=1e7?0:1)+" ล้าน":Math.round(v/1e3)+" พัน";
+  let g="";for(let i=1;i<=3;i++){const v=max*i/3,py=yy(v);g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+py.toFixed(1)+'" y2="'+py.toFixed(1)+'" stroke="var(--line)" stroke-width="1" fill="none"/><text x="'+(L+4)+'" y="'+(py+13).toFixed(1)+'">'+short(v)+'</text>';}
+  const ticks=[0,Math.round(years/2),years].filter((v,i,a)=>a.indexOf(v)===i);
+  $("dcaChart").innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="กราฟมูลค่าเงินลงทุน DCA เทียบกับเงินต้น">'+g+
+   '<path d="'+line("v")+' L'+x(years).toFixed(1)+' '+yy(0).toFixed(1)+' L'+x(0).toFixed(1)+' '+yy(0).toFixed(1)+' Z" fill="var(--accent)" fill-opacity=".14" stroke="none"/>'+
+   '<path d="'+line("v")+'" fill="none" stroke="var(--accent)" stroke-width="2"/>'+
+   '<path d="'+line("c")+'" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>'+
+   '<circle cx="'+x(years).toFixed(1)+'" cy="'+yy(last.v).toFixed(1)+'" r="4" fill="var(--accent)"/>'+
+   ticks.map(t=>'<text x="'+x(t).toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+(t===0?"start":t===years?"end":"middle")+'">ปีที่ '+t+'</text>').join("")+
+   '</svg><p class="muted" style="font-size:12px;margin-top:4px">เส้นทึบคือมูลค่าพอร์ต เส้นประคือเงินต้นที่ใส่เข้าไป</p>';
+}
+
+/* ===== PLAN BY AGE + REBALANCE ===== */
+const BK=[
+ {k:"core",n:"ตลาดกว้าง",s:"g",etfs:["VOO","VTI","VT","VXUS"],r:7,c:"--c1"},
+ {k:"growth",n:"Growth",s:"g",etfs:["QQQM","QQQ","VUG","SCHG"],r:8.5,c:"--c2"},
+ {k:"tech",n:"เทคและชิป",s:"g",etfs:["VGT","XLK","SMH","SOXX"],r:9.5,c:"--c3"},
+ {k:"theme",n:"ธีม",s:"g",etfs:["BOTZ","CIBR","ITA"],r:8,c:"--c4"},
+ {k:"div",n:"ปันผล",s:"g",etfs:["SCHD"],r:6.5,c:"--c5"},
+ {k:"bond",n:"ตราสารหนี้",s:"s",etfs:["BND"],r:3.5,c:"--c6"},
+ {k:"gold",n:"ทองคำ",s:"s",etfs:["GLD"],r:4,c:"--c7"}];
+const RISK={cons:["ระมัดระวัง",100],mod:["ปานกลาง",110],agg:["เชิงรุก",120]};
+const SPLIT={cons:{core:60,growth:10,tech:5,theme:0,div:25},mod:{core:55,growth:20,tech:10,theme:5,div:10},agg:{core:45,growth:25,tech:15,theme:10,div:5}};
+const SAFE={bond:70,gold:30};
+const P={age:36,ret:60,amt:5000,inf:2,risk:"agg",tilt:true,tiltPts:5,on:{},etf:{},r:{},custom:null,hold:{},cash:5000,band:5,rbMode:"cash",mkP:"y1",mkDir:1,mkStr:30,mkTag:null,mkNote:"",tgRet:8,tgTag:null,auto:true,autoMk:true,style:"auto",sat:true,rs:8.5,goalMode:"pct",goalPct:10,goalAmt:5000000};
+/* long-run return assumption per ETF, % per year: editable in the table, not a forecast */
+const ER={VOO:7,VTI:7,VT:6.5,VXUS:6,QQQ:8.5,QQQM:8.5,VUG:8,SCHG:8,VGT:9.5,XLK:9.5,SMH:11,SOXX:11,BOTZ:8,CIBR:9,ITA:8,SCHD:6.5,GLD:4,BND:3.5};
+BK.forEach(b=>{P.on[b.k]=true;P.etf[b.k]=b.etfs[0];P.r[b.k]=b.r;P.hold[b.k]=0;});
+function loadP(r){
+  if(r&&typeof r==="object"){
+    ["age","ret","amt","inf","tiltPts","cash","band"].forEach(k=>{if(typeof r[k]==="number"&&isFinite(r[k]))P[k]=r[k];});
+    if(RISK[r.risk])P.risk=r.risk; if(typeof r.tilt==="boolean")P.tilt=r.tilt; if(r.rbMode==="full"||r.rbMode==="cash")P.rbMode=r.rbMode;
+    BK.forEach(b=>{if(r.on&&typeof r.on[b.k]==="boolean")P.on[b.k]=r.on[b.k];
+      if(r.etf&&b.etfs.includes(r.etf[b.k]))P.etf[b.k]=r.etf[b.k];
+      if(r.r&&isFinite(r.r[b.k]))P.r[b.k]=+r.r[b.k];
+      if(r.hold&&isFinite(r.hold[b.k]))P.hold[b.k]=+r.hold[b.k];});
+    if(r.custom&&typeof r.custom==="object"){P.custom={};BK.forEach(b=>{if(P.on[b.k])P.custom[b.k]=isFinite(r.custom[b.k])?+r.custom[b.k]:0;});
+      if(typeof r.mkTag==="string"&&typeof r.mkNote==="string"){P.mkTag=r.mkTag;P.mkNote=r.mkNote;}
+      else if(typeof r.tgTag==="string"&&typeof r.mkNote==="string"){P.tgTag=r.tgTag;P.mkNote=r.mkNote;}}
+    if(r.goalMode==="pct"||r.goalMode==="amt")P.goalMode=r.goalMode; if(typeof r.goalPct==="number"&&isFinite(r.goalPct))P.goalPct=Math.max(0,Math.min(40,r.goalPct)); if(typeof r.goalAmt==="number"&&isFinite(r.goalAmt)&&r.goalAmt>=0)P.goalAmt=r.goalAmt;
+    if(typeof r.sat==="boolean")P.sat=r.sat; if(typeof r.rs==="number"&&isFinite(r.rs))P.rs=Math.max(0,Math.min(20,r.rs));
+    if(typeof r.auto==="boolean")P.auto=r.auto; if(typeof r.autoMk==="boolean")P.autoMk=r.autoMk; if(["auto","div","tech","usa","world"].includes(r.style))P.style=r.style;
+    if(typeof r.tgRet==="number"&&isFinite(r.tgRet))P.tgRet=Math.max(3,Math.min(12,r.tgRet));
+    if(["m1","m3","ytd","y1","y5"].includes(r.mkP))P.mkP=r.mkP; if(r.mkDir===1||r.mkDir===-1)P.mkDir=r.mkDir;
+    if(typeof r.mkStr==="number"&&isFinite(r.mkStr))P.mkStr=Math.max(5,Math.min(60,r.mkStr));
+  }}
+try{loadP(JSON.parse(localStorage.getItem("etfRadarPlan")||"null"));}catch(e){}
+function savePlan(){try{localStorage.setItem("etfRadarPlan",JSON.stringify(P));}catch(e){}touch();}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const numv=(el,d)=>{const v=parseFloat(el.value);return isFinite(v)?v:d;};
+const onKeys=s=>BK.filter(b=>P.on[b.k]&&(!s||b.s===s)).map(b=>b.k);
+const wsum=w=>Object.values(w).reduce((a,b)=>a+b,0);
+function mkt(){const e=E.find(x=>x.t==="VOO"),o=offHigh(e),step=o>=-10?0:o>=-20?1:2;return{o:o,z:zone(e)[0],add:P.tilt?step*P.tiltPts:0};}
+function eqBase(age){return clamp(RISK[P.risk][1]-age,20,95);}
+/* which groups suit which age, per risk level: [from age, to age]; null = not used at that risk level */
+const ALLAGE=[0,200];
+const GRULE={core:{cons:ALLAGE,mod:ALLAGE,agg:ALLAGE},
+  growth:{cons:[0,49],mod:[0,59],agg:ALLAGE},
+  tech:{cons:null,mod:[0,49],agg:[0,59]},
+  theme:{cons:null,mod:[0,39],agg:[0,49]},
+  div:{cons:[40,200],mod:[45,200],agg:[50,200]},
+  bond:{cons:ALLAGE,mod:ALLAGE,agg:ALLAGE},gold:{cons:ALLAGE,mod:ALLAGE,agg:ALLAGE}};
+const ruleOn=(k,age)=>{if(P.style==="div"){if(k==="div")return true;if(k==="theme")return false;}const r=GRULE[k][P.risk];return !!r&&age>=r[0]&&age<=r[1];};
+const isOn=(k,age)=>P.auto?ruleOn(k,age):!!P.on[k];
+function applyAuto(){if(P.auto)BK.forEach(b=>{P.on[b.k]=ruleOn(b.k,P.age);});}
+function splitAt(age){const t=Object.assign({},SPLIT[P.risk]),d=GRULE.div[P.risk];
+  if(d&&age>=d[0])t.div=clamp(10+(age-d[0])*1.5,10,40);
+  if(P.style==="div")t.div=Math.max(t.div,30);
+  if(P.style==="tech"){t.growth*=1.3;t.tech*=1.6;}
+  return t;}
+/* satellite of individual stocks: share of the whole plan, carved out of the growth side */
+let SAT_MODE=null; /* null = the user's plan; "etf" / "hyb" force a variant for the comparison */
+function withSat(m,fn){const o=SAT_MODE;SAT_MODE=m;try{return fn();}finally{SAT_MODE=o;}}
+function satAt(age){if(SAT_MODE==="etf")return 0;if(!(SAT_MODE==="hyb"||P.sat)||P.risk==="cons")return 0;return P.risk==="agg"?(age<45?20:age<55?15:age<60?10:5):(age<50?10:5);}
+const capn=(v,lo,hi)=>v==null||!isFinite(v)?0.5:clamp((v-lo)/(hi-lo),0,1);
+const mcapB=t=>t?parseFloat(t)*(/T$/.test(t)?1000:1):null;
+const SWT={cons:[35,20,20,20,5],mod:[35,20,20,20,5],agg:[25,35,20,10,10]}; /* quality, growth, valuation, stability, size */
+function scoreStocks(){const w=SWT[P.risk];return ST.map(e=>{
+    const q=(capn(e.nm,0,50)+capn(e.roe,0,60)+(1-capn(e.de,0,1.5)))/3,g=(capn(e.rev5,0,30)+capn(e.eps5,0,40))/2,v=((1-capn(e.fpe,10,45))+capn(e.fcfy,-2,5))/2,st=1-capn(e.beta,0.2,2.2),z=capn(Math.log(mcapB(e.mcap)||500),Math.log(500),Math.log(5000));
+    return{e:e,ok:isFinite(e.nm)&&e.nm>0&&isFinite(e.fpe)&&e.fpe>0,score:w[0]*q+w[1]*g+w[2]*v+w[3]*st+w[4]*z};}).sort((a,b)=>(b.ok-a.ok)||b.score-a.score);}
+function pickStocks(n){const out=[],per={};let hot=false;if(n<=0)return out;for(const r of scoreStocks()){if(!r.ok||(per[r.e.sector]||0)>=2)continue;if(P.risk!=="agg"&&r.e.beta>1.6)continue;if(r.e.beta>2){if(hot)continue;hot=true;}out.push(r);per[r.e.sector]=(per[r.e.sector]||0)+1;if(out.length>=n)break;}return out;}
+const satCount=s=>s>=20?5:s>=15?4:s>=10?3:s>0?2:0;
+function pretAll(w,age){const s=satAt(age);return((100-s)*pret(w)+s*P.rs)/100;}
+function longRet(e){if(e.cg[4]!=null)return e.cg[4];if(e.t==="QQQM")return E.find(x=>x.t==="QQQ").cg[4]+0.03;return e.cg[3]||0;}
+function weightsAt(age,add){const keysAt=s=>BK.filter(b=>b.s===s&&isOn(b.k,age)).map(b=>b.k);
+  const g=keysAt("g"),s=keysAt("s"),w={};let eq=Math.min(98,eqBase(age)+add);
+  const sat_=satAt(age);if(sat_>0)eq=clamp((eq-sat_)/(100-sat_)*100,0,98);
+  if(!s.length)eq=100; if(!g.length)eq=0;
+  const share=(keys,tab,tot)=>{const sum=keys.reduce((a,k)=>a+(tab[k]||0),0);keys.forEach(k=>{w[k]=tot*(sum?(tab[k]||0)/sum:1/keys.length);});};
+  share(g,splitAt(age),eq);share(s,SAFE,100-eq);return w;}
+function round100(w){const ks=Object.keys(w);if(!ks.length)return{};const fl={};let used=0;
+  ks.forEach(k=>{fl[k]=Math.floor(w[k]+1e-9);used+=fl[k];});
+  ks.slice().sort((a,b)=>(w[b]-fl[b])-(w[a]-fl[a])).slice(0,Math.max(0,Math.round(100-used))).forEach(k=>fl[k]++);return fl;}
+function targets(){if(P.custom){const t={};onKeys().forEach(k=>{t[k]=Math.max(0,+P.custom[k]||0);});return t;}
+  let w=weightsAt(P.age,mkt().add);if(P.autoMk)w=tiltW(w,AUTO_P,1,AUTO_STR).out;return round100(w);}
+const AUTO_P="y1",AUTO_STR=20;
+function tiltW(base,per,dir,str){const out={},rets={};
+  ["g","s"].forEach(s=>{const ks=BK.filter(b=>b.s===s&&base[b.k]>0).map(b=>b.k);if(!ks.length)return;
+    const tot=ks.reduce((a,k)=>a+base[k],0),rs=ks.map(k=>E.find(x=>x.t===P.etf[k]).tr[per]);
+    const mean=rs.reduce((a,b)=>a+b,0)/rs.length,dev=Math.max.apply(null,rs.map(r=>Math.abs(r-mean)));
+    let sum=0;const raw={};
+    ks.forEach((k,i)=>{rets[k]=rs[i];const z=dev>0.01?(rs[i]-mean)/dev:0;raw[k]=base[k]*(1+dir*str/100*z);sum+=raw[k];});
+    ks.forEach(k=>{out[k]=sum?raw[k]/sum*tot:0;});});
+  Object.keys(base).forEach(k=>{if(!(k in out))out[k]=base[k];});return{out:out,rets:rets};}
+function cashSplit(t,cash){const sum=wsum(t),ks=Object.keys(t),tr={};let tot=0,need=0;
+  ks.forEach(k=>{tot+=Math.max(0,P.hold[k]||0);});
+  ks.forEach(k=>{tr[k]=(sum?(tot+cash)*t[k]/sum:0)-Math.max(0,P.hold[k]||0);if(tr[k]>0)need+=tr[k];});
+  ks.forEach(k=>{tr[k]=tr[k]>0&&need>0?tr[k]*cash/need:0;});return{tr:tr,tot:tot};}
+function diffNote(b0,t){const up=[],dn=[];BK.forEach(b=>{if(!(b.k in t))return;const d=t[b.k]-(b0[b.k]||0);if(d>0)up.push(b.n+" +"+d+" จุด");else if(d<0)dn.push(b.n+" "+d+" จุด");});
+  return up.length||dn.length?(up.length?"เพิ่ม "+up.join(", "):"")+(up.length&&dn.length?" · ":"")+(dn.length?"ลด "+dn.join(", "):""):"ทุกกลุ่มใกล้เคียงกัน จึงไม่ปรับ";}
+function pret(w){const s=wsum(w);return s?Object.keys(w).reduce((a,k)=>a+w[k]*P.r[k],0)/s:0;}
+function growthShare(w){const s=wsum(w);return s?BK.filter(b=>b.s==="g").reduce((a,b)=>a+(w[b.k]||0),0)/s*100:0;}
+function project(delta){let v=onKeys().reduce((a,k)=>a+Math.max(0,P.hold[k]||0),0)+stkHeld();const start=v,yrs=Math.max(0,P.ret-P.age);
+  for(let a=P.age;a<P.ret;a++){const w=(P.custom&&!P.mkTag)||a===P.age?targets():weightsAt(a,0);
+    const rm=Math.pow(1+Math.max(-0.99,(pretAll(w,a)+delta)/100),1/12)-1;
+    for(let m=0;m<12;m++)v=(v+P.amt)*(1+rm);}
+  return{v:v,c:start+P.amt*12*yrs,yrs:yrs,start:start};}
+
+function renderPlanTable(){
+  $("planBody").innerHTML=BK.map(b=>{const on=P.on[b.k],dis=on?"":" disabled";
+    const sel='<span class="tk" id="e-'+b.k+'">'+P.etf[b.k]+'</span>'+(b.etfs.length>1?' <span class="muted" style="font-size:11.5px" title="เลือกจาก '+b.etfs.join(", ")+'">ระบบเลือก</span>':'');
+    return '<tr class="'+(on?"":"off")+'"><td><input type="checkbox" id="g-'+b.k+'" aria-label="ลงทุนในกลุ่ม '+b.n+'"'+(on?" checked":"")+'></td>'+
+      '<td class="l"><span class="dot" style="background:var('+b.c+')"></span>'+b.n+' <span class="muted" style="font-size:12px">'+(b.s==="g"?"เติบโต":"ปลอดภัย")+'</span></td>'+
+      '<td class="l">'+sel+'</td>'+
+      '<td><input class="in" type="number" min="0" max="100" step="1" id="w-'+b.k+'" aria-label="สัดส่วนเป้า '+b.n+'"'+dis+'> %</td>'+
+      '<td><input class="in" type="number" min="-10" max="30" step="0.5" id="r-'+b.k+'" value="'+P.r[b.k]+'" aria-label="ผลตอบแทนคาดหวัง '+b.n+'"'+dis+'> %</td>'+
+      '<td class="num" id="c-'+b.k+'"></td><td class="num" id="m-'+b.k+'"></td></tr>';}).join("");
+  $("rbBody").innerHTML=BK.filter(b=>P.on[b.k]).map(b=>'<div class="rb"><div class="rbh"><span><span class="dot" style="background:var('+b.c+')"></span>'+b.n+' <span class="tk" id="x-'+b.k+'"></span></span><b id="a-'+b.k+'"></b></div>'+
+      '<div class="rbs"><span>ถืออยู่ <b class="money" id="h-'+b.k+'"></b></span><span>ตอนนี้ <b id="n-'+b.k+'"></b></span><span>เป้า <b id="t-'+b.k+'"></b></span><span>เบี่ยง <b id="d-'+b.k+'"></b></span></div></div>').join("")
+      ||'<p class="empty">ยังไม่ได้เลือกกลุ่มที่จะลงทุน</p>';
+  const t=targets();BK.forEach(b=>{$("w-"+b.k).value=P.on[b.k]?(t[b.k]||0):0;});
+  updatePlan();
+}
+
+function updatePlan(){
+  syncHold();
+  const t=targets(),sum=wsum(t),m=mkt(),yrs=Math.max(0,P.ret-P.age);
+  if(!P.custom)BK.forEach(b=>{const el=$("w-"+b.k);if(P.on[b.k]&&document.activeElement!==el)el.value=t[b.k]||0;});
+  BK.forEach(b=>{$("e-"+b.k).textContent=P.etf[b.k];});
+  $("planMode").textContent=P.custom?(P.mkTag?"ตามตลาด "+P.mkTag:P.tgTag?"เป้าผลตอบแทน "+P.tgTag:"ปรับสัดส่วนเอง"):"ระบบจัดให้อัตโนมัติ";$("planMode").className="tag "+(P.custom?"a":"g");
+  [...$("mkPeriod").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===P.mkP));
+  [...$("mkDir").children].forEach(b=>b.setAttribute("aria-pressed",+b.dataset.d===P.mkDir));
+  $("planReset").hidden=!P.custom&&P.auto;
+  if(!P.custom&&!P.auto)$("planMode").textContent="เลือกกลุ่มเอง";
+  const offs=BK.filter(b=>!P.on[b.k]).map(b=>{const r=GRULE[b.k][P.risk];
+    return b.n+(!P.auto?"":P.style==="div"&&b.k==="theme"?" (ไม่ใช้กับเป้าหมายรับปันผล)":!r?" (ไม่ใช้ในระดับ"+RISK[P.risk][0]+")":P.age<r[0]?" (เริ่มที่อายุ "+r[0]+")":" (ใช้ถึงอายุ "+r[1]+")");});
+  $("planPick").textContent=(P.auto?"อายุ "+P.age+" ระดับ"+RISK[P.risk][0]+" ระบบเลือกกลุ่ม: ":"คุณเลือกกลุ่มเอง: ")+BK.filter(b=>P.on[b.k]).map(b=>b.n).join(", ")+
+    (offs.length?" · ยังไม่ใส่: "+offs.join(", "):"")+(P.sat&&satAt(P.age)===0&&P.risk==="cons"?" · ระดับความเสี่ยงน้อยไม่มีหุ้นรายตัว":satAt(P.age)>0?" · หุ้นรายตัว "+satAt(P.age)+"% ของพอร์ต "+satCount(satAt(P.age))+" ตัว คัดจากคุณภาพธุรกิจ การเติบโต ความถูกแพง และความผันผวน":"")+" · ETF ของแต่ละกลุ่มคัดจากคะแนน 5 ด้าน: ค่าธรรมเนียม ขนาดกอง อายุกอง การกระจายตัว และผลตอบแทน 10 ปี (ดูคะแนนได้ด้านล่าง)";
+  [...$("planStyle").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===P.style));
+  $("scoreBody").innerHTML=BK.filter(b=>P.on[b.k]).map(b=>{const rows=b.etfs.length>1?scoreGroup(b):[{e:E.find(x=>x.t===b.etfs[0]),age:+LATEST.slice(0,4)-(+E.find(x=>x.t===b.etfs[0]).inc),ok:true,score:null}];
+    return rows.map((r,i)=>{const e=r.e,pick=e.t===P.etf[b.k],l=e.cg[4]!=null?pct(e.cg[4],1):e.t==="QQQM"?"ใช้ของ QQQ":"—";
+      return '<tr><td class="l">'+(i?"":'<span class="dot" style="background:var('+b.c+')"></span>'+b.n)+'</td><td class="l"><span class="tk">'+e.t+'</span></td><td class="num">'+e.er.toFixed(2)+'%</td><td class="num">'+(e.aum?"$"+e.aum:"—")+'</td><td class="num">'+r.age+' ปี</td><td class="num">'+l+'</td><td class="num">'+(e.t10==null?"—":e.t10+"%")+'</td><td class="num">'+(r.score==null?"—":r.score.toFixed(0))+'</td><td class="l">'+(pick?'<span class="tag g">เลือก</span>':!r.ok?'<span class="tag r">ไม่ผ่านเกณฑ์</span>':"")+'</td></tr>';}).join("");}).join("");
+  [...$("planRisk").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.r===P.risk));
+  [...$("rbMode").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===P.rbMode));
+  $("planRule").textContent=P.custom&&(P.mkTag||P.tgTag)?P.mkNote:P.custom
+    ?"คุณกำหนดสัดส่วนเอง สูตรตามอายุและการปรับตามตลาดถูกพักไว้ และสัดส่วนนี้จะคงที่ตลอดช่วงที่คำนวณ"
+    :"สูตร "+RISK[P.risk][1]+" − อายุ ให้ฝั่งเติบโต "+eqBase(P.age)+"% · ตลาดกว้าง (VOO) อยู่ที่ "+pct(m.o,1)+" จากจุดสูงสุด 52 สัปดาห์ ("+m.z+") "+(P.tilt?(m.add?"จึงเพิ่มฝั่งเติบโตอีก "+m.add+" จุด":"จึงยังไม่ปรับเพิ่ม"):"· ปิดการปรับตามตลาดอยู่");
+  if(!P.custom&&P.autoMk)$("planRule").textContent+=" · ระบบปรับน้ำหนักตามแนวโน้ม 1 ปีให้อัตโนมัติ: "+diffNote(round100(weightsAt(P.age,m.add)),t);
+  $("riskDesc").textContent={cons:"ระมัดระวัง: รับการขาดทุนชั่วคราวได้น้อย เน้นรักษาเงินต้น ผลตอบแทนคาดหวังต่ำกว่า",mod:"ปานกลาง: รับความผันผวนได้พอสมควร ยอมให้มูลค่าลดลงชั่วคราวราว 20–30% ได้",agg:"เชิงรุก: ยอมให้มูลค่าลดลงชั่วคราว 30–50% ได้โดยไม่ขายทิ้ง เพื่อผลตอบแทนระยะยาวที่สูงกว่า"}[P.risk]+" · "+{auto:"ให้ระบบจัดสมดุล: ระบบเลือกกลุ่มตามอายุและความเสี่ยงโดยไม่เน้นด้านใดเป็นพิเศษ",div:"รับปันผลสม่ำเสมอ: ใส่กลุ่มปันผลตั้งแต่ตอนนี้และเพิ่มน้ำหนัก ไม่ใช้กลุ่มธีม",tech:"เทคโตแรง: เพิ่มน้ำหนัก Growth และเทคโนโลยี ผันผวนมากขึ้น",usa:"เกาะตลาดสหรัฐ: แกนหลักของพอร์ตใช้ ETF หุ้นสหรัฐ",world:"กระจายทั่วโลก: แกนหลักของพอร์ตใช้ ETF หุ้นทั่วโลก ไม่ต้องเลือกประเทศเอง"}[P.style];
+  const sat=satAt(P.age),stk=sat>0?pickStocks(satCount(sat)):[],satAmt=stk.length?P.amt*sat/100:0,cs=cashSplit(t,P.amt-satAmt),buys=BK.filter(b=>P.on[b.k]&&Math.round(cs.tr[b.k]||0)>0);
+  $("planDo").innerHTML='<div class="doh"><h2>เดือนนี้ซื้ออะไร เท่าไร</h2><b class="money">'+baht(P.amt)+' บาท</b></div>'+
+    (buys.length?buys.map(b=>{const e=E.find(x=>x.t===P.etf[b.k]);return '<button class="buyrow" type="button" data-t="'+e.t+'" aria-label="ดูรายละเอียด '+e.t+'"><span class="dot" style="background:var('+b.c+')"></span><span><b class="tk">'+e.t+'</b><span class="nm">'+b.n+' · '+esc(e.th)+'</span></span><span class="amt"><b class="money">'+baht(cs.tr[b.k])+' บาท</b><span>'+(P.amt?Math.round(cs.tr[b.k]/P.amt*100):0)+'%</span></span></button>';}).join("")+stk.map(r=>'<button class="buyrow" type="button" data-s="'+r.e.t+'" aria-label="ดูรายละเอียด '+r.e.t+'"><span class="dot" style="background:var(--c8)"></span><span><b class="tk">'+r.e.t+'</b><span class="nm">หุ้นรายตัว · '+esc(r.e.n)+' · คะแนน '+r.score.toFixed(0)+'</span></span><span class="amt"><b class="money">'+baht(satAmt/stk.length)+' บาท</b><span>'+(sat/stk.length).toFixed(0)+'%</span></span></button>').join(""):'<p class="muted" style="padding:10px 0">ใส่จำนวนเงินที่จะลงทุนต่อเดือนก่อน</p>')+
+    (stk.length&&buys.length?'<p class="dohint">หุ้นรายตัวรวม '+sat+'% ของเงินลงทุน เป็นส่วนเสริมที่เสี่ยงกว่า ETF ระบบลดสัดส่วนนี้ลงเมื่ออายุมากขึ้น และปิดได้ที่ตัวเลือกด้านบน</p>':'')+
+    '<p class="dohint">'+(cs.tot>0?"ระบบเฉลี่ยเงินเดือนนี้ไปกลุ่มที่ต่ำกว่าเป้า ตามมูลค่าพอร์ต "+baht(cs.tot)+" บาทของ ETF ที่บันทึกไว้ในแท็บพอร์ต":"กดที่แต่ละแถวเพื่อดูข้อมูลกอง เมื่อเริ่มมีพอร์ตแล้ว บันทึกสิ่งที่ถืออยู่ในแท็บพอร์ต ระบบจะเฉลี่ยเงินแต่ละเดือนไปกลุ่มที่ต่ำกว่าเป้าให้เอง")+'</p>';
+  const act=BK.filter(b=>P.on[b.k]&&t[b.k]>0);
+  $("planBar").innerHTML=act.map(b=>'<span style="width:'+(t[b.k]/sum*(100-(stk.length?sat:0))).toFixed(2)+'%;background:var('+b.c+')" title="'+b.n+'"></span>').join("")+(stk.length?'<span style="width:'+sat+'%;background:var(--c8)" title="หุ้นรายตัว '+sat+'%"></span>':'');
+  const sc=scoreStocks(),picked=stk.map(r=>r.e.t),f1=v=>v==null||!isFinite(v)?"—":(+v).toFixed(1);
+  $("stkBody").innerHTML=sc.map(r=>{const e=r.e;return '<tr><td class="l"><span class="tk">'+e.t+'</span><span class="nm">'+esc(e.n)+'</span></td><td class="l">'+esc(e.sector||"")+'</td><td class="num">'+f1(e.fpe)+'</td><td class="num">'+f1(e.nm)+'%</td><td class="num">'+f1(e.roe)+'%</td><td class="num">'+(e.de==null?"—":(+e.de).toFixed(2))+'</td><td class="num">'+f1(e.eps5)+'%</td><td class="num">'+(e.beta==null?"—":(+e.beta).toFixed(2))+'</td><td class="num">'+r.score.toFixed(0)+'</td><td class="l">'+(picked.includes(e.t)?'<span class="tag g">เลือก</span>':!r.ok?'<span class="tag r">ไม่ผ่านเกณฑ์</span>':'')+'</td></tr>';}).join("");
+  BK.forEach(b=>{const e=E.find(x=>x.t===P.etf[b.k]),c=e&&e.cg[4];
+    $("c-"+b.k).textContent=c==null?"—":pct(c,1);
+    $("m-"+b.k).textContent=P.on[b.k]&&sum?baht(cs.tr[b.k]||0)+" บาท":"—";});
+  $("planSum").textContent=sum+"%";$("planSum").className="num "+(Math.abs(sum-100)>0.01?"down":"");
+  $("planRet2").textContent=sum?pret(t).toFixed(2)+"%":"—";
+  $("planAmt2").textContent=baht(P.amt)+" บาท";
+  if(!sum){$("planOut").innerHTML='<div class="hero"><span>ยังคำนวณไม่ได้</span><em>ตั้งสัดส่วนเป้าอย่างน้อยหนึ่งกลุ่ม</em></div>';}
+  else if(yrs<=0){$("planOut").innerHTML='<div class="hero"><span>ยังคำนวณไม่ได้</span><em>อายุเกษียณต้องมากกว่าอายุปัจจุบัน</em></div>';}
+  else{const mid=project(0),lo=project(-2),hi=project(2),real=mid.v/Math.pow(1+P.inf/100,yrs);
+    $("planOut").innerHTML=
+     '<div class="hero"><span>มูลค่าโดยประมาณตอนอายุ '+P.ret+'</span><b class="money">'+baht(mid.v)+' บาท</b><em class="money">อยู่ในช่วง '+baht(lo.v)+' ถึง '+baht(hi.v)+' บาท ถ้าผลตอบแทนต่ำหรือสูงกว่าที่คาด 2 จุดต่อปี</em></div>'+
+     '<div class="stats"><div><span>เงินต้นที่ใส่รวม '+yrs+' ปี</span><b class="money">'+baht(mid.c)+' บาท</b></div>'+
+     '<div><span>คิดเป็นค่าเงินวันนี้</span><b class="money">'+baht(real)+' บาท</b></div>'+
+     '<div><span>ผลตอบแทนที่ใช้คำนวณ</span><b>'+pretAll(t,P.age).toFixed(2)+'% ต่อปี</b></div></div>'+
+     (sum!==100?'<p class="note down">สัดส่วนรวม '+sum+'% ระบบเทียบเป็น 100% ให้ชั่วคราว</p>':"");}
+  const ages=[];for(let a=P.age;a<P.ret&&ages.length<11;a+=5)ages.push(a);if(P.ret>P.age)ages.push(P.ret);if(!ages.length)ages.push(P.age);
+  $("planGlide").innerHTML=ages.map(a=>{const sA=satAt(a),g=Math.round((growthShare((P.custom&&!P.mkTag)||a===P.age?t:weightsAt(a,0))*(100-sA)+sA*100)/100);
+    return '<div><span>อายุ '+a+'</span><div class="col" title="เติบโต '+g+'% ปลอดภัย '+(100-g)+'%"><span style="height:'+(100-g)+'%;background:var(--c6)"></span><span style="height:'+g+'%;background:var(--c1)"></span></div><b>'+g+' / '+(100-g)+'</b></div>';}).join("");
+  updateRebal();
+  updatePF();
+  renderStocks();
+  renderCompare();
+}
+
+function updateRebal(){
+  const t=targets(),sum=wsum(t),ks=onKeys(),cash=Math.max(0,P.cash||0),full=P.rbMode==="full",cur={},trade={};
+  let tot=0,need=0;ks.forEach(k=>{cur[k]=Math.max(0,P.hold[k]||0);tot+=cur[k];});
+  const end=tot+cash;
+  ks.forEach(k=>{trade[k]=(sum?end*t[k]/sum:cur[k])-cur[k];if(trade[k]>0)need+=trade[k];});
+  if(!full)ks.forEach(k=>{trade[k]=trade[k]>0&&need>0?trade[k]*cash/need:0;});
+  let maxAfter=0;const over=[];
+  ks.forEach(k=>{const b=BK.find(x=>x.k===k),tp=sum?t[k]/sum*100:0,np=tot?cur[k]/tot*100:null,ap=end?(cur[k]+trade[k])/end*100:tp,d=np==null?null:np-tp;
+    $("x-"+k).textContent=P.etf[k];$("h-"+k).textContent=baht(cur[k]);
+    $("n-"+k).textContent=np==null?"—":np.toFixed(1)+"%";
+    $("t-"+k).textContent=tp.toFixed(1)+"%";
+    const de=$("d-"+k);de.textContent=d==null?"—":(d>0?"+":"")+d.toFixed(1)+" จุด";de.className=(d!=null&&Math.abs(d)>P.band?"down":"");
+    const ae=$("a-"+k),v=Math.round(trade[k]);ae.textContent=!sum?"—":Math.abs(v)<1?"ไม่ต้องทำอะไร":(v>0?"ซื้อ ":"ขาย ")+baht(Math.abs(v))+" บาท";ae.className="num money "+(v>=1?"up":v<=-1?"down":"muted");
+    if(d!=null&&Math.abs(d)>P.band)over.push(b.n);
+    maxAfter=Math.max(maxAfter,Math.abs(ap-tp));});
+  let msg;
+  if(!ks.length||!sum)msg="ตั้งแผนในแท็บแผนของฉันก่อน";
+  else if(!tot)msg=cash?"ยังไม่มี ETF ในพอร์ต ระบบจึงแบ่งเงินใหม่ "+baht(cash)+" บาทตามสัดส่วนเป้า เพิ่ม ETF ที่ถืออยู่ในรายการสินทรัพย์ด้านบนเพื่อดูว่าพอร์ตเบี่ยงไปเท่าไร":"เพิ่ม ETF ที่ถืออยู่ในรายการสินทรัพย์ด้านบนเพื่อเริ่มคำนวณ";
+  else if(!over.length)msg="ทุกกลุ่มเบี่ยงจากเป้าไม่เกิน "+P.band+" จุด ยังไม่ถึงเกณฑ์ Rebalance"+(cash?" เติมเงินใหม่ตามรายการด้านล่างเพื่อดึงพอร์ตเข้าใกล้เป้า":"");
+  else msg="ถึงเกณฑ์ Rebalance แล้ว: "+over.join(", ")+" เบี่ยงเกิน "+P.band+" จุด "+(full?"ทำตามรายการด้านล่างแล้วพอร์ตจะกลับมาตรงเป้า":maxAfter>P.band?"เงินใหม่รอบนี้ยังดึงกลับไม่ถึงกรอบ (หลังเติมยังเบี่ยงสูงสุด "+maxAfter.toFixed(1)+" จุด) ต้องเติมต่ออีกหลายรอบ หรือเลือกแบบซื้อและขาย":"เงินใหม่รอบนี้พอดึงกลับเข้ากรอบโดยไม่ต้องขาย");
+  $("rbVerdict").textContent=msg;
+}
+
+const aumB=e=>e.aum?parseFloat(e.aum)*(/T$/.test(e.aum)?1000:1):null;
+const SW={cons:[30,5],mod:[15,20],agg:[5,30]}; /* [diversification, long-run return] points by risk level */
+function scoreGroup(b){let c=b.etfs.map(t=>E.find(x=>x.t===t));
+  if(b.k==="core"){if(P.style==="usa")c=c.filter(e=>e.t==="VOO"||e.t==="VTI");else if(P.style==="world")c=c.filter(e=>e.t==="VT");}
+  const nm=f=>{const v=c.map(f),lo=Math.min.apply(null,v),hi=Math.max.apply(null,v);return x=>hi-lo>1e-9?(f(x)-lo)/(hi-lo):1;};
+  const fee=nm(e=>-e.er),size=nm(e=>Math.log(aumB(e)||1)),perf=nm(longRet),div=nm(e=>100-(e.t10==null?50:e.t10)),w=SW[P.risk],yr=+LATEST.slice(0,4);
+  return c.map(e=>{const age=yr-(+e.inc),a=aumB(e),ok=(a==null||a>=1)&&age>=3;
+    return{e:e,age:age,ok:ok,score:30*fee(e)+20*size(e)+15*Math.min(1,age/10)+w[0]*div(e)+w[1]*perf(e)};})
+    .sort((x,y)=>(y.ok-x.ok)||y.score-x.score||x.e.er-y.e.er);}
+function pickEtfs(){BK.forEach(b=>{if(b.etfs.length<2)return;
+  const best=scoreGroup(b)[0].e;
+  if(P.etf[b.k]!==best.t){P.etf[b.k]=best.t;P.r[b.k]=ER[best.t];const el=document.getElementById("r-"+b.k);if(el)el.value=P.r[b.k];}});}
+function targetCalc(){
+  pickEtfs();
+  const p=weightsAt(P.age,mkt().add),ks=onKeys().filter(k=>p[k]>0);if(!ks.length)return;
+  const rs=ks.map(k=>P.r[k]),lo=Math.min.apply(null,rs),hi=Math.max.apply(null,rs),want=P.tgRet;
+  const raw=th=>{const w={};let s=0;ks.forEach(k=>{w[k]=p[k]*Math.exp(th*(P.r[k]-7));s+=w[k];});ks.forEach(k=>{w[k]=w[k]/s*100;});return w;};
+  const tgt=hi-lo<0.2?lo:clamp(want,lo+0.1,hi-0.1);
+  let a=-8,b=8;for(let i=0;i<60;i++){const mid=(a+b)/2;if(pret(raw(mid))<tgt)a=mid;else b=mid;}
+  const t=round100(raw((a+b)/2));onKeys().forEach(k=>{if(!(k in t))t[k]=0;});
+  const got=pret(t),g=Math.round(growthShare(t)),frame=Math.round(growthShare(p));
+  const top=BK.filter(x=>t[x.k]>0).sort((x,y)=>t[y.k]-t[x.k]);
+  const m1=Object.keys(t).reduce((s,k)=>s+t[k]*E.find(x=>x.t===P.etf[k]).tr.m1,0)/100;
+  P.custom=t;P.mkTag=null;P.tgTag=null;P.tgTag=want+"%";
+  P.mkNote="จัดพอร์ตให้ผลตอบแทนคาดหวังใกล้ "+want+"% ต่อปี (ได้ "+got.toFixed(2)+"%) โดยเริ่มจากสูตรอายุแล้วโยกน้ำหนักไปกลุ่มที่สมมติฐานผลตอบแทน"+(got>=pret(p)?"สูงกว่า":"ต่ำกว่า")+
+    (Math.abs(tgt-want)>0.01?" · เป้า "+want+"% อยู่นอกช่วงที่กลุ่มเหล่านี้ทำได้ ("+lo+"–"+hi+"%) จึงใช้ค่าที่ใกล้ที่สุด":"")+
+    " · ฝั่งเติบโต "+g+"% เทียบกรอบสูตรอายุ "+frame+"%"+(g>frame+2?" ซึ่งเสี่ยงกว่ากรอบอายุ":"")+
+    " · กลุ่มใหญ่สุด "+top.slice(0,2).map(x=>x.n+" "+P.etf[x.k]+" "+t[x.k]+"%").join(", ")+
+    " · พอร์ตนี้ในรอบ 1 เดือนล่าสุดเปลี่ยนแปลง "+pct(m1,1)+" · สัดส่วนนี้คงที่ตลอดช่วงที่คำนวณ ยิ่งตั้งเป้าสูง พอร์ตยิ่งกระจุกและผันผวน";
+  savePlan();renderPlanTable();
+}
+function marketCalc(){
+  const picks=[];pickEtfs();P.tgTag=null;
+  const base=weightsAt(P.age,mkt().add),b0=round100(base),PL=PERIODS.find(p=>p[0]===P.mkP),tw=tiltW(base,P.mkP,P.mkDir,P.mkStr),rets=tw.rets;
+  const t=round100(tw.out),up=[],dn=[];
+  BK.forEach(b=>{if(!(b.k in t))return;const d=t[b.k]-(b0[b.k]||0),lab=b.n+" "+P.etf[b.k]+" ("+pct(rets[b.k],1)+")";
+    if(d>0)up.push(lab+" +"+d+" จุด");else if(d<0)dn.push(lab+" "+d+" จุด");});
+  P.custom=t;P.mkTag=PL[2];
+  P.mkNote="คำนวณจากผลตอบแทนรวมปันผลช่วง "+PL[2]+" ของข้อมูลล่าสุด แบบ"+(P.mkDir>0?"ตามแนวโน้ม (เพิ่มกลุ่มที่ทำได้ดีกว่า)":"สวนตลาด (เพิ่มกลุ่มที่ราคาย่อมากกว่า)")+" ความแรง "+P.mkStr+"% · "+(picks.length?"ETF ที่ระบบเลือก"+(P.mkDir>0?" (ตัวที่ทำได้ดีที่สุดของกลุ่ม)":" (ตัวที่ย่อมากที่สุดของกลุ่ม)")+": "+picks.join(", ")+" · ":"")+
+    (up.length||dn.length?(up.length?"เพิ่ม: "+up.join(", "):"")+(up.length&&dn.length?" · ":"")+(dn.length?"ลด: "+dn.join(", "):""):"ทุกกลุ่มใกล้เคียงกัน จึงไม่เปลี่ยนจากสูตรอายุ")+
+    " · สัดส่วนเติบโตต่อปลอดภัยยังเป็นไปตามสูตรอายุ กดคำนวณใหม่ทุกครั้งที่อัปเดตข้อมูลตลาด";
+  savePlan();renderPlanTable();
+}
+$("mkPeriod").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.mkP=b.dataset.p;pickEtfs();savePlan();updatePlan();});
+$("mkDir").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.mkDir=+b.dataset.d;pickEtfs();savePlan();updatePlan();});
+$("tgRet").addEventListener("input",ev=>{P.tgRet=clamp(numv(ev.target,8),3,12);savePlan();});
+$("tgGo").addEventListener("click",targetCalc);
+$("mkStr").addEventListener("input",ev=>{P.mkStr=clamp(numv(ev.target,30),5,60);savePlan();});
+$("mkGo").addEventListener("click",marketCalc);
+
+function readPlanInputs(){
+  P.age=clamp(Math.round(numv($("planAge"),P.age)),18,90);
+  P.ret=clamp(Math.round(numv($("planRet"),P.ret)),19,95);
+  const amt0=P.amt;P.amt=Math.max(0,numv($("planAmt"),0));P.autoMk=$("autoMk").checked;P.sat=$("planSat").checked;P.rs=clamp(numv($("planRs"),8.5),0,20);
+  P.inf=clamp(numv($("planInf"),0),0,15);
+  P.tiltPts=clamp(Math.round(numv($("planTiltPts"),0)),0,10);
+  if(P.amt!==amt0)$("rbCash").value=P.amt;
+  P.cash=Math.max(0,numv($("rbCash"),0));
+  P.band=clamp(numv($("rbBand"),5),1,20);
+  P.tilt=$("planTilt").checked;
+  if(P.auto){const before=JSON.stringify(P.on);applyAuto();
+    if(before!==JSON.stringify(P.on)){if(P.mkTag||P.tgTag){P.custom=null;P.mkTag=null;P.tgTag=null;}savePlan();renderPlanTable();return;}}
+  savePlan();updatePlan();
+}
+["planAge","planRet","planAmt","planInf","planTiltPts","rbCash","rbBand","planTilt","autoMk","planSat","planRs"].forEach(id=>$(id).addEventListener("input",readPlanInputs));
+$("planRisk").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.risk=b.dataset.r;P.custom=null;P.mkTag=null;P.tgTag=null;applyAuto();pickEtfs();savePlan();renderPlanTable();});
+$("planStyle").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.style=b.dataset.s;P.custom=null;P.mkTag=null;P.tgTag=null;P.auto=true;applyAuto();pickEtfs();savePlan();renderPlanTable();});
+$("planReset").addEventListener("click",()=>{P.custom=null;P.mkTag=null;P.tgTag=null;P.auto=true;applyAuto();pickEtfs();savePlan();renderPlanTable();});
+$("rbMode").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.rbMode=b.dataset.m;savePlan();updatePlan();});
+$("planBody").addEventListener("input",ev=>{const el=ev.target,id=el.id||"",k=id.slice(2);
+  if(id.indexOf("w-")===0){if(!P.custom){const t=targets();P.custom=Object.assign({},t);}P.custom[k]=Math.max(0,numv(el,0));P.mkTag=null;P.tgTag=null;}
+  else if(id.indexOf("r-")===0)P.r[k]=numv(el,0);
+  else return;
+  savePlan();updatePlan();});
+$("planBody").addEventListener("change",ev=>{const el=ev.target,id=el.id||"",k=id.slice(2);
+  if(id.indexOf("g-")===0){P.auto=false;P.on[k]=el.checked;if(P.custom){if(el.checked)P.custom[k]=0;else delete P.custom[k];P.mkTag=null;P.tgTag=null;}savePlan();renderPlanTable();}
+  else if(id.indexOf("e-")===0){P.etf[k]=el.value;savePlan();updatePlan();}});
+function initPlan(){$("planAge").value=P.age;$("planRet").value=P.ret;$("planAmt").value=P.amt;$("planInf").value=P.inf;$("planTiltPts").value=P.tiltPts;$("rbCash").value=P.cash;$("rbBand").value=P.band;$("planTilt").checked=P.tilt;$("mkStr").value=P.mkStr;$("tgRet").value=P.tgRet;$("autoMk").checked=P.autoMk;$("planSat").checked=P.sat;$("planRs").value=P.rs;applyAuto();pickEtfs();renderPlanTable();}
+
+function render(){const r=rows();renderControls();renderSummary(r);renderTable(r);renderRank(r);renderDetail();if(typeof renderStocks==="function"&&typeof P!=="undefined")renderStocks();}
+function select(t,scroll){S.sel=t;render();if(scroll){const m=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;$("detail").scrollIntoView({block:"nearest",behavior:m?"auto":"smooth"});}}
+
+$("periods").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;S.period=b.dataset.p;S.sortKey="period";S.sortDir=-1;save();render();});
+$("modes").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;S.mode=b.dataset.m;save();render();});
+$("cats").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;S.cat=b.dataset.c;render();});
+$("q").addEventListener("input",ev=>{S.q=ev.target.value;const r=rows();renderSummary(r);renderTable(r);renderRank(r);});
+$("thead").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;const k=b.dataset.s;
+  if(PERIODS.some(p=>p[0]===k)){if(S.period===k&&S.sortKey==="period")S.sortDir*=-1;else{S.period=k;S.sortKey="period";S.sortDir=-1;}save();}
+  else if(S.sortKey===k)S.sortDir*=-1;else{S.sortKey=k;S.sortDir=(k==="t"||k==="er")?1:-1;}
+  render();});
+function listClick(ev){const st=ev.target.closest("[data-star]");
+  if(st){const t=st.dataset.star;S.stars.has(t)?S.stars.delete(t):S.stars.add(t);save();render();return;}
+  const row=ev.target.closest("[data-t]");if(row)select(row.dataset.t,true);}
+$("tbody").addEventListener("click",listClick);
+$("mlist").addEventListener("click",listClick);
+$("mlist").addEventListener("keydown",ev=>{if(ev.key==="Enter"&&ev.target.classList&&ev.target.classList.contains("mrow"))select(ev.target.dataset.t,true);});
+$("rank").addEventListener("click",ev=>{const b=ev.target.closest("[data-t]");if(b)select(b.dataset.t,false);});
+["dcaAmt","dcaYears","dcaRate"].forEach(id=>$(id).addEventListener("input",renderDCA));
+$("dcaUse").addEventListener("click",()=>{const r=Math.min(25,Math.round(parseFloat($("dcaUse").dataset.r)*2)/2);$("dcaRate").value=r;renderDCA();});
+
+function setAsof(){const ds=[...new Set(E.map(e=>e.d))].sort();LATEST=ds[ds.length-1];
+  $("asof").textContent=ds.length>1?thDate(ds[0]).replace(/ \d{4}$/,"")+" – "+thDate(ds[ds.length-1]):thDate(ds[0]);}
+setAsof();
+/* live prices: a scheduled job writes one document per ETF into the "quotes" collection; the embedded data above is only the fallback */
+function applyQuote(q){if(!q)return false;const e=E.find(x=>x.t===q.t);if(!e)return false;
+  const num=v=>typeof v==="number"&&isFinite(v),ok7=o=>o&&["d1","d5","m1","m3","ytd","y1","y5"].every(k=>num(o[k]));
+  if(!(num(q.p)&&q.p>0&&/^\d{4}-\d{2}-\d{2}$/.test(q.d||"")&&ok7(q.pr)&&ok7(q.tr)&&num(q.lo)&&num(q.hi)&&q.lo>0&&q.hi>=q.lo))return false;
+  if(q.d<e.d||(q.d===e.d&&q.p===e.p))return false;
+  const c=JSON.parse(JSON.stringify(q)),pairs=a=>Array.isArray(a)&&a.length?a.filter(x=>x&&typeof x.s==="string"&&num(x.w)).map(x=>[x.s,x.w]):null;
+  e.d=c.d;e.p=c.p;e.pr=c.pr;e.tr=c.tr;e.lo=c.lo;e.hi=c.hi;
+  if(num(c.m20))e.m20=c.m20;if(num(c.m50))e.m50=c.m50;if(num(c.er))e.er=c.er;if(num(c.y))e.y=c.y;
+  if(typeof c.aum==="string"&&/^[\d.]+[TBM]$/.test(c.aum))e.aum=c.aum;
+  if(Array.isArray(c.cg)&&c.cg.length===6)e.cg=c.cg.map(v=>num(v)?v:null);
+  if(num(c.hc))e.hc=c.hc;if(num(c.t10))e.t10=c.t10;
+  const tp=pairs(c.top),sc=pairs(c.sec);if(tp)e.top=tp;if(sc)e.sec=sc;
+  return true;}
+function applyStock(q){const e=ST.find(x=>x.t===q.t);if(!e)return false;
+  const num=v=>typeof v==="number"&&isFinite(v);
+  if(!(num(q.p)&&q.p>0&&/^\d{4}-\d{2}-\d{2}$/.test(q.d||"")&&num(q.lo)&&num(q.hi)&&q.lo>0&&q.hi>=q.lo))return false;
+  if(q.d<e.d||(q.d===e.d&&q.p===e.p))return false;
+  e.d=q.d;e.p=q.p;e.lo=q.lo;e.hi=q.hi;
+  if(q.pr&&["d1","d5","m1","m3","ytd","y1","y5"].every(k=>num(q.pr[k])))e.pr=JSON.parse(JSON.stringify(q.pr));
+  ["m50","pe","fpe","fcfy","nm","roe","de","rev5","eps5","y","beta"].forEach(k=>{if(num(q[k]))e[k]=q[k];});
+  if(typeof q.mcap==="string"&&/^[\d.]+[TBM]$/.test(q.mcap))e.mcap=q.mcap;
+  return true;}
+function liveNote(t,warn){const el=$("live");el.textContent=t?"· "+t:"";el.className=warn?"down":"";}
+function applyQuoteDoc(q){if(!q||typeof q!=="object")return false;
+  if(q.t==="USDTHB"){if(typeof q.rate==="number"&&q.rate>20&&q.rate<60){FX_AUTO=q.rate;if(!PF.fxManual&&q.rate!==PF.fx){PF.fx=q.rate;return true;}}return false;}
+  if(q.k==="stk")return applyStock(q);return applyQuote(q);}
+async function loadQuotes(){
+  liveNote("กำลังโหลดราคาล่าสุด");
+  try{const res=await fetch("quotes.json?t="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error(res.status);
+    const j=await res.json(),items=Array.isArray(j.items)?j.items:[];let changed=0;
+    items.forEach(q=>{try{if(applyQuoteDoc(q))changed++;}catch(e){}});
+    liveNote("อัปเดตอัตโนมัติ");
+    if(changed){setAsof();try{pickEtfs();}catch(e){}render();updatePlan();}
+  }catch(e){liveNote("ยังโหลดราคาล่าสุดไม่ได้ กำลังแสดงข้อมูลที่บันทึกไว้",true);}}
+setTimeout(loadQuotes,0);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")loadQuotes();});
+/* ===== PORTFOLIO: every asset in one place; ETF holdings feed the plan and the ETF rebalance ===== */
+const CLS=[{k:"etf",n:"ETF ตามแผน",c:"--c1"},{k:"th",n:"หุ้นไทย",c:"--c3"},{k:"us",n:"หุ้นต่างประเทศ",c:"--c2"},{k:"cr",n:"Crypto",c:"--c4"},{k:"cash",n:"เงินสด",c:"--c7"}];
+const KINDS={etf:"ETF ในระบบ (ราคาอัตโนมัติ)",stk:"หุ้นต่างประเทศในระบบ (ราคาอัตโนมัติ)",fund:"ETF / กองทุนอื่น",th:"หุ้นไทย",us:"หุ้นต่างประเทศ",cr:"Crypto",cash:"เงินสด"};
+const PF={items:[],tg:null,fx:33.77,fxManual:false,hist:{},savedAt:0};
+let FX_AUTO=null,HIDE=false,remoteDoc=null,pushTimer=null,pushing=false,dirty=false;
+const fin=v=>typeof v==="number"&&isFinite(v);
+const newId=()=>"i"+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);
+function cleanItem(it){if(!it||typeof it!=="object"||!KINDS[it.k])return null;
+  const o={id:typeof it.id==="string"&&/^[a-z0-9]{2,24}$/.test(it.id)?it.id:newId(),k:it.k,n:typeof it.n==="string"?it.n.slice(0,40):""};
+  if(it.k==="etf"||it.k==="stk"){if(!(it.k==="etf"?E:ST).some(e=>e.t===it.t)||!fin(it.u)||it.u<0)return null;o.t=it.t;o.u=it.u;}
+  else{if(!fin(it.v)||it.v<0)return null;o.v=it.v;if(it.k==="fund"){if(!BK.some(b=>b.k===it.g))return null;o.g=it.g;}}
+  return o;}
+function loadPF(r){if(!r||typeof r!=="object")return;
+  if(Array.isArray(r.items))PF.items=r.items.map(cleanItem).filter(Boolean).slice(0,60);
+  if(r.tg&&typeof r.tg==="object"){PF.tg={};CLS.forEach(c=>{PF.tg[c.k]=fin(r.tg[c.k])?clamp(r.tg[c.k],0,100):0;});}else PF.tg=null;
+  if(fin(r.fx)&&r.fx>20&&r.fx<60)PF.fx=r.fx; PF.fxManual=r.fxManual===true;
+  if(r.hist&&typeof r.hist==="object"){PF.hist={};Object.keys(r.hist).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().slice(-120).forEach(k=>{if(fin(r.hist[k])&&r.hist[k]>=0)PF.hist[k]=r.hist[k];});}
+  if(fin(r.savedAt))PF.savedAt=r.savedAt;}
+try{loadPF(JSON.parse(localStorage.getItem("etfRadarPF")||"null"));}catch(e){}
+try{HIDE=localStorage.getItem("etfRadarHide")==="1";}catch(e){}
+if(!PF.items.length)BK.forEach(b=>{if(P.hold[b.k]>0)PF.items.push({id:newId(),k:"fund",g:b.k,n:b.n+" (ยอดเดิม)",v:P.hold[b.k]});});
+function savePF(){try{localStorage.setItem("etfRadarPF",JSON.stringify(PF));}catch(e){}}
+const isAuto=it=>it.k==="etf"||it.k==="stk",itemPx=it=>(it.k==="etf"?E:ST).find(e=>e.t===it.t).p;
+const itemVal=it=>isAuto(it)?it.u*itemPx(it)*PF.fx:it.v;
+function stkHeld(){return PF.items.reduce((a,it)=>a+(it.k==="stk"?itemVal(it):0),0);}
+const itemCls=it=>it.k==="etf"||it.k==="fund"?"etf":it.k==="stk"?"us":it.k;
+const itemGroup=it=>it.k==="etf"?BK.find(b=>b.etfs.includes(it.t)).k:it.k==="fund"?it.g:null;
+function syncHold(){BK.forEach(b=>{P.hold[b.k]=0;});PF.items.forEach(it=>{const g=itemGroup(it);if(g)P.hold[g]+=itemVal(it);});}
+const pfTotal=()=>PF.items.reduce((a,it)=>a+itemVal(it),0);
+function clsTotals(){const t={};CLS.forEach(c=>{t[c.k]=0;});PF.items.forEach(it=>{t[itemCls(it)]+=itemVal(it);});return t;}
+const monthKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");};
+function recHist(){const tot=Math.round(pfTotal());if(tot<=0)return false;const k=monthKey();if(PF.hist[k]===tot)return false;PF.hist[k]=tot;return true;}
+
+function snapshotState(){return{v:1,savedAt:PF.savedAt,P:JSON.parse(JSON.stringify(P)),PF:{items:PF.items,tg:PF.tg,fx:PF.fx,fxManual:PF.fxManual,hist:PF.hist},S:{stars:[...S.stars],period:S.period,mode:S.mode}};}
+function syncNote(t){const el=$("syncNote");if(el)el.textContent=t;}
+function touch(){PF.savedAt=Date.now();savePF();if(!remoteDoc)return;clearTimeout(pushTimer);pushTimer=setTimeout(push,1500);}
+async function push(){if(!remoteDoc)return;if(pushing){dirty=true;return;}pushing=true;
+  try{await remoteDoc.set(snapshotState());syncNote("บันทึกเข้าบัญชีของคุณแล้ว เปิดจากเครื่องไหนก็เห็นข้อมูลเดียวกัน มีแค่คุณที่เห็นพอร์ตนี้");}
+  catch(e){syncNote("ยังบันทึกเข้าบัญชีไม่ได้ ข้อมูลยังอยู่ในเครื่องนี้ ระบบจะลองใหม่เมื่อมีการแก้ไขครั้งถัดไป");}
+  pushing=false;if(dirty){dirty=false;push();}}
+function adopt(r){P.custom=null;P.mkTag=null;P.tgTag=null;loadP(r.P);loadPF(Object.assign({},r.PF,{savedAt:r.savedAt}));
+  if(r.S&&typeof r.S==="object"){if(Array.isArray(r.S.stars))S.stars=new Set(r.S.stars.filter(t=>E.some(e=>e.t===t)));
+    if(PERIODS.some(p=>p[0]===r.S.period))S.period=r.S.period;if(r.S.mode==="tr"||r.S.mode==="pr")S.mode=r.S.mode;}
+  try{localStorage.setItem("etfRadarPlan",JSON.stringify(P));localStorage.setItem("etfRadar",JSON.stringify({stars:[...S.stars],period:S.period,mode:S.mode}));}catch(e){}
+  savePF();render();initPlan();renderPFList();}
+
+function renderPFList(){
+  $("pfList").innerHTML=PF.items.length?PF.items.map(it=>{const c=CLS.find(x=>x.k===itemCls(it)),g=itemGroup(it),gb=g&&BK.find(b=>b.k===g),isE=isAuto(it);
+    return '<div class="pfrow"><span class="dot" style="background:var('+c.c+')"></span><div><b class="tk">'+esc(isE?it.t:(it.n||c.n))+'</b><span class="nm">'+c.n+(gb?" · "+gb.n:"")+(isE?" · ราคาอัตโนมัติ":"")+'</span></div>'+
+      '<div class="pfv"><b class="money" id="iv-'+it.id+'"></b><span id="is-'+it.id+'"></span></div>'+
+      '<button class="pfx" type="button" data-del="'+it.id+'" aria-label="ลบ '+esc(isE?it.t:(it.n||c.n))+'">✕</button>'+
+      '<label class="pfq" for="iq-'+it.id+'">'+(isE?"จำนวนหน่วย":"มูลค่า (บาท)")+'<input'+(isE?"":' class="money"')+' id="iq-'+it.id+'" type="number" min="0" step="any" inputmode="decimal" value="'+(isE?it.u:it.v)+'"></label></div>';}).join("")
+    :'<p class="empty">ยังไม่มีสินทรัพย์ กด "+ เพิ่มสินทรัพย์" ด้านล่างเพื่อเริ่ม</p>';
+  updatePF();}
+
+function updatePF(){
+  if(!$("pfTotal"))return;
+  const tot=pfTotal(),ct=clsTotals(),tg=PF.tg,tgSum=tg?CLS.reduce((a,c)=>a+(tg[c.k]||0),0):0,hasTg=!!tg&&Math.abs(tgSum-100)<0.01;
+  $("pfTotal").textContent=baht(tot)+" บาท";
+  $("pfSub").textContent=PF.items.length+" รายการ · 1 ดอลลาร์ = "+PF.fx.toFixed(2)+" บาท · ราคา ETF ณ "+thDate(LATEST);
+  PF.items.forEach(it=>{const a=$("iv-"+it.id),b=$("is-"+it.id);if(!a)return;const v=itemVal(it);a.textContent=baht(v)+" บาท";
+    b.textContent=(tot?(v/tot*100).toFixed(1):"0.0")+"%"+(isAuto(it)?" · $"+itemPx(it).toFixed(2):"");});
+  const C=2*Math.PI*40;let off=0;
+  $("pfDonut").innerHTML='<svg viewBox="0 0 100 100" role="img" aria-label="สัดส่วนสินทรัพย์"><circle cx="50" cy="50" r="40" fill="none" stroke="var(--sunk)" stroke-width="13"/>'+
+    (tot?CLS.map(c=>{const f=ct[c.k]/tot;if(f<=0)return"";const seg='<circle cx="50" cy="50" r="40" fill="none" stroke="var('+c.c+')" stroke-width="13" stroke-dasharray="'+Math.max(0,f*C-1.2).toFixed(2)+' '+C.toFixed(2)+'" stroke-dashoffset="'+(-off*C).toFixed(2)+'" transform="rotate(-90 50 50)"/>';off+=f;return seg;}).join(""):"")+
+    '</svg><div class="ctr"><b>'+PF.items.length+'</b>รายการ</div>';
+  $("pfClasses").innerHTML=CLS.map(c=>{const pc=tot?ct[c.k]/tot*100:0;
+    return '<div class="clsrow"><span><span class="dot" style="background:var('+c.c+')"></span>'+c.n+(hasTg?' <span class="muted" style="font-size:12px">เป้า '+tg[c.k]+'%</span>':'')+'</span><b>'+pc.toFixed(0)+'%</b>'+
+      '<span class="trk"><i style="width:'+Math.min(100,pc).toFixed(1)+'%;background:var('+c.c+')"></i>'+(hasTg?'<u style="left:'+clamp(tg[c.k],0,100)+'%" title="เป้า '+tg[c.k]+'%"></u>':'')+'</span></div>';}).join("");
+  let adv;
+  if(!tot)adv="เพิ่มสินทรัพย์ที่ถืออยู่ ระบบจะรวมมูลค่า แสดงสัดส่วน และบอกว่าควรปรับอะไร";
+  else if(!tg)adv="ยังไม่ได้ตั้งเป้าสัดส่วนระหว่างประเภทสินทรัพย์ ตั้งได้ที่หัวข้อด้านล่าง ระบบจะบอกว่าควรเพิ่มหรือลดประเภทไหน";
+  else if(!hasTg)adv="เป้ารวมกันได้ "+tgSum+"% ต้องรวมให้ครบ 100% ก่อน ระบบจึงจะแนะนำได้";
+  else{const dn=[],up=[];CLS.forEach(c=>{const d=ct[c.k]/tot*100-tg[c.k];if(d>P.band)dn.push("ลด "+c.n+" "+d.toFixed(0)+" จุด (ราว "+baht(d/100*tot)+" บาท)");else if(d<-P.band)up.push("เพิ่ม "+c.n+" "+(-d).toFixed(0)+" จุด (ราว "+baht(-d/100*tot)+" บาท)");});
+    adv=dn.length||up.length?"เพื่อให้ตรงเป้า: "+dn.concat(up).join(" · "):"ทุกประเภทอยู่ในกรอบเป้า ไม่เกิน "+P.band+" จุด ยังไม่ต้องปรับ";}
+  $("pfAdvice").textContent=adv;
+  CLS.forEach(c=>{const el=$("tg-"+c.k);if(el&&document.activeElement!==el)el.value=tg?tg[c.k]:"";});
+  $("pfTgSum").textContent=tg?"รวม "+tgSum+"%"+(hasTg?"":" (ต้องรวมให้ได้ 100%)"):"ใส่เปอร์เซ็นต์ที่อยากถือของแต่ละประเภท รวมกันให้ได้ 100%";
+  const fxEl=$("pfFx");if(document.activeElement!==fxEl)fxEl.value=PF.fx;
+  $("pfFxNote").textContent=PF.fxManual?"คุณตั้งอัตรานี้เอง ลบตัวเลขออกเพื่อกลับไปใช้อัตราอัตโนมัติ":"อัปเดตอัตโนมัติพร้อมราคา ETF แก้ตัวเลขได้ถ้าต้องการใช้อัตราของตัวเอง";
+  const ks=Object.keys(PF.hist).sort(),hEl=$("pfHist");
+  if(ks.length<2)hEl.innerHTML='<p class="muted" style="font-size:13.5px">'+(ks.length?"บันทึกแล้ว 1 เดือน ("+baht(PF.hist[ks[0]])+" บาท) กราฟจะขึ้นเมื่อมีข้อมูลตั้งแต่ 2 เดือน ระบบบันทึกยอดให้เดือนละครั้งเมื่อคุณเปิดหน้านี้":"ยังไม่มีข้อมูล ระบบจะบันทึกยอดรวมให้เดือนละครั้งเมื่อมีสินทรัพย์ในพอร์ต")+'</p>';
+  else{const W=720,H=200,L=8,R=8,T=16,B=24,vs=ks.map(k=>PF.hist[k]),mx=Math.max.apply(null,vs)||1,x=i=>L+(W-L-R)*i/(ks.length-1),y=v=>T+(H-T-B)*(1-v/mx),lab=k=>MON[+k.slice(5)-1]+" "+k.slice(2,4);
+    const line=vs.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)).join(" ");
+    hEl.innerHTML='<svg class="money" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="กราฟมูลค่าพอร์ตรายเดือน"><path d="'+line+' L'+x(ks.length-1).toFixed(1)+' '+y(0).toFixed(1)+' L'+x(0).toFixed(1)+' '+y(0).toFixed(1)+' Z" fill="var(--accent)" fill-opacity=".14" stroke="none"/><path d="'+line+'" fill="none" stroke="var(--accent)" stroke-width="2"/>'+
+      vs.map((v,i)=>'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(v).toFixed(1)+'" r="3.5" fill="var(--accent)"/>').join("")+
+      '<text x="'+L+'" y="'+(H-6)+'">'+lab(ks[0])+'</text><text x="'+(W-R)+'" y="'+(H-6)+'" text-anchor="end">'+lab(ks[ks.length-1])+'</text><text x="'+(W-R)+'" y="12" text-anchor="end">ล่าสุด '+baht(vs[vs.length-1])+' บาท</text></svg>';}
+}
+function pfChanged(list){syncHold();recHist();touch();if(list)renderPFList();updatePlan();}
+function kindFields(){const k=$("pfKind").value;const au=k==="etf"||k==="stk";$("pfTickerL").hidden=!au;$("pfGroupL").hidden=k!=="fund";$("pfNameL").hidden=au||k==="cash";
+  if(au)$("pfTicker").innerHTML=(k==="etf"?E.map(e=>[e.t,e.th]):ST.map(e=>[e.t,e.n])).map(x=>'<option value="'+x[0]+'">'+x[0]+' · '+esc(x[1])+'</option>').join("");
+  $("pfQtyT").textContent=au?"จำนวนหน่วยที่ถือ":"มูลค่าตอนนี้ (บาท)";$("pfAddMsg").textContent=au?"ระบบคิดมูลค่าจากราคาล่าสุดและอัตราแลกเปลี่ยนให้เอง":k==="fund"?"สำหรับ ETF หรือกองทุนที่ไม่มีในระบบ เลือกกลุ่มที่ใกล้เคียง เพื่อให้นับรวมในแผน ETF":"ประเภทนี้ยังไม่มีราคาอัตโนมัติ ใส่มูลค่าเป็นบาทและแก้ได้ทุกเมื่อ";}
+function initPF(){
+  $("pfKind").innerHTML=Object.keys(KINDS).map(k=>'<option value="'+k+'">'+KINDS[k]+'</option>').join("");
+  $("pfTicker").innerHTML=E.map(e=>'<option value="'+e.t+'">'+e.t+' · '+esc(e.th)+'</option>').join("");
+  $("pfGroup").innerHTML=BK.map(b=>'<option value="'+b.k+'">'+b.n+'</option>').join("");
+  $("pfTargets").innerHTML=CLS.map(c=>'<label for="tg-'+c.k+'">'+c.n+' (%)<input id="tg-'+c.k+'" type="number" min="0" max="100" step="1" inputmode="numeric"></label>').join("");
+  kindFields();
+  $("pfKind").addEventListener("change",kindFields);
+  $("pfAdd").addEventListener("click",()=>{const k=$("pfKind").value,q=parseFloat($("pfQty").value);
+    const au=k==="etf"||k==="stk";if(!isFinite(q)||q<=0){$("pfAddMsg").textContent=au?"ใส่จำนวนหน่วยที่มากกว่า 0":"ใส่มูลค่าเป็นบาทที่มากกว่า 0";return;}
+    if(PF.items.length>=60){$("pfAddMsg").textContent="เพิ่มได้สูงสุด 60 รายการ";return;}
+    const it={id:newId(),k:k,n:au?"":($("pfName").value||"").trim().slice(0,40)};
+    if(au){it.t=$("pfTicker").value;it.u=q;}else{it.v=q;if(k==="fund")it.g=$("pfGroup").value;if(k==="cash")it.n="เงินสด";}
+    PF.items.push(it);$("pfQty").value="";$("pfName").value="";$("pfAddMsg").textContent="เพิ่มแล้ว";pfChanged(true);});
+  $("pfList").addEventListener("input",ev=>{const id=(ev.target.id||"");if(id.indexOf("iq-")!==0)return;const it=PF.items.find(x=>x.id===id.slice(3));if(!it)return;
+    const v=Math.max(0,numv(ev.target,0));if(isAuto(it))it.u=v;else it.v=v;pfChanged(false);});
+  $("pfList").addEventListener("click",ev=>{const b=ev.target.closest("[data-del]");if(!b)return;PF.items=PF.items.filter(x=>x.id!==b.dataset.del);pfChanged(true);});
+  $("pfTargets").addEventListener("input",ev=>{const id=ev.target.id||"";if(id.indexOf("tg-")!==0)return;if(!PF.tg){PF.tg={};CLS.forEach(c=>{PF.tg[c.k]=0;});}
+    PF.tg[id.slice(3)]=clamp(Math.round(numv(ev.target,0)),0,100);touch();updatePF();});
+  $("pfTgUse").addEventListener("click",()=>{const tot=pfTotal();if(!tot)return;const ct=clsTotals(),w={};CLS.forEach(c=>{w[c.k]=ct[c.k]/tot*100;});PF.tg=round100(w);touch();updatePF();});
+  $("pfSnap").addEventListener("click",()=>{if(recHist())touch();updatePF();});
+  $("pfFx").addEventListener("input",ev=>{const v=parseFloat(ev.target.value);
+    if(isFinite(v)&&v>20&&v<60){PF.fx=v;PF.fxManual=true;}else if(ev.target.value===""){PF.fxManual=false;if(FX_AUTO)PF.fx=FX_AUTO;}else return;
+    syncHold();touch();updatePlan();});
+  $("hideBtn").addEventListener("click",()=>{HIDE=!HIDE;try{localStorage.setItem("etfRadarHide",HIDE?"1":"0");}catch(e){}applyHide();});
+  applyHide();renderPFList();
+}
+function applyHide(){if(document.body&&document.body.classList)document.body.classList.toggle("hide",HIDE);$("hideBtn").setAttribute("aria-pressed",HIDE?"true":"false");}
+/* private per-person save: Firestore users/{uid}; the Firebase module calls ER_signedIn once the email is verified */
+window.ER_signedIn=async function(acct){
+  $("acctEmail").textContent=acct.email||"—";
+  try{const snap=await acct.ref.get(),r=snap.exists?snap.data():null;
+    if(r&&fin(r.savedAt)&&r.savedAt>PF.savedAt)adopt(JSON.parse(JSON.stringify(r)));
+    remoteDoc=acct.ref;syncNote("เชื่อมกับบัญชีของคุณแล้ว เปิดจากเครื่องไหนก็เห็นข้อมูลเดียวกัน ผู้ใช้คนอื่นเห็นพอร์ตนี้ไม่ได้");
+    if(recHist()){touch();updatePF();}else if(PF.savedAt>0&&(!r||!fin(r.savedAt)||r.savedAt<PF.savedAt))push();
+  }catch(e){syncNote("ยังเชื่อมกับบัญชีไม่ได้ ข้อมูลที่กรอกเก็บไว้ในเครื่องนี้ ลองรีเฟรชหน้าอีกครั้ง");}
+};
+window.ER_flush=async function(){clearTimeout(pushTimer);if(remoteDoc&&PF.savedAt>0){try{await remoteDoc.set(snapshotState());}catch(e){}}};
+function acctMsg(t,bad){const el=$("acctMsg");el.textContent=t;el.className="note"+(bad?" down":"");}
+$("acctBtn").addEventListener("click",()=>{setTab("portfolio",true);setTimeout(()=>{$("acctBox").scrollIntoView({block:"start"});},0);});
+$("acctExport").addEventListener("click",()=>{try{const blob=new Blob([JSON.stringify(snapshotState(),null,2)],{type:"application/json"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download="etf-radar-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);acctMsg("ดาวน์โหลดไฟล์ข้อมูลของคุณแล้ว");}catch(e){acctMsg("ดาวน์โหลดไม่ได้ ลองใหม่อีกครั้ง",true);}});
+$("acctImportBtn").addEventListener("click",()=>$("acctImport").click());
+$("acctImport").addEventListener("change",async ev=>{const f=ev.target.files&&ev.target.files[0];ev.target.value="";if(!f)return;
+  try{if(f.size>1e6)throw new Error("big");const r=JSON.parse(await f.text());if(!r||typeof r!=="object"||(!r.P&&!r.PF))throw new Error("shape");
+    r.savedAt=Date.now();adopt(r);PF.savedAt=r.savedAt;touch();updatePlan();acctMsg("นำเข้าข้อมูลแล้ว ระบบบันทึกเข้าบัญชีของคุณให้แล้ว");}
+  catch(e){acctMsg("ไฟล์นี้ไม่ใช่ไฟล์ข้อมูลของ ETF Radar เลือกไฟล์ที่ดาวน์โหลดจากปุ่มดาวน์โหลดข้อมูลของฉัน",true);}});
+/* ===== COMPARE: ETF only vs hybrid vs stocks only, then pick the least risky one that reaches the goal ===== */
+function fvConst(rate,amt,yrs,start){const rm=Math.pow(1+Math.max(-0.99,rate/100),1/12)-1;let v=start;for(let m=0;m<yrs*12;m++)v=(v+amt)*(1+rm);return v;}
+function solveUp(f,lo,hi,target){for(let i=0;i<60;i++){const mid=(lo+hi)/2;if(f(mid)<target)lo=mid;else hi=mid;}return(lo+hi)/2;}
+function portfolioSet(){
+  const yrs=Math.max(0,P.ret-P.age);
+  const mk=(key,name,mode)=>withSat(mode,()=>{const t=targets(),sum=wsum(t)||1,sat=satAt(P.age),stk=sat>0?pickStocks(satCount(sat)):[],sv=stk.length?sat:0,pos=[];
+    Object.keys(t).forEach(k=>{if(t[k]>0)pos.push({e:E.find(x=>x.t===P.etf[k]),w:t[k]/sum*(100-sv),safe:BK.find(b=>b.k===k).s==="s"});});
+    stk.forEach(r=>pos.push({e:r.e,w:sv/stk.length,safe:false}));
+    const mid=project(0);return{key:key,name:name,pos:pos,sat:sv,mid:mid.v,lo:project(-2).v,hi:project(2).v,c:mid.c,start:mid.start};});
+  const out=[mk("etf","ETF ล้วน","etf"),mk("hyb","ผสม","hyb")],start=out[0].start,sp=pickStocks(P.risk==="agg"?10:8);
+  out.push({key:"stk",name:"หุ้นล้วน",pos:sp.map(r=>({e:r.e,w:100/sp.length,safe:false})),sat:100,mid:fvConst(P.rs,P.amt,yrs,start),lo:fvConst(P.rs-4,P.amt,yrs,start),hi:fvConst(P.rs+4,P.amt,yrs,start),c:out[0].c,start:start});
+  out.forEach(p=>{const wa=f=>p.pos.reduce((a,x)=>a+x.w*f(x.e),0)/100;
+    p.eff=yrs>0&&(P.amt>0||start>0)?solveUp(r=>fvConst(r,P.amt,yrs,start),-10,40,p.mid):NaN;
+    p.h={m1:wa(e=>e.pr.m1),y1:wa(e=>e.pr.y1),y5:wa(e=>e.pr.y5)};p.off=wa(offHigh);p.rng=wa(e=>(e.hi-e.lo)/e.hi*100);
+    p.n=p.pos.length;const big=p.pos.slice().sort((a,b)=>b.w-a.w)[0];p.big=big?big.e.t+" "+big.w.toFixed(0)+"%":"—";p.safe=p.pos.reduce((a,x)=>a+(x.safe?x.w:0),0);
+    p.fit=p.key!=="stk";});
+  return out;}
+function renderCompare(){
+  if(!$("cmpTable"))return;
+  [...$("goalMode").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.g===P.goalMode));
+  const isPct=P.goalMode==="pct",gv=$("goalVal");$("goalLab").textContent=isPct?"ผลตอบแทนที่ต้องการต่อปี (%)":"เงินที่อยากมีตอนเกษียณ (บาท)";
+  gv.className=isPct?"":"money";if(document.activeElement!==gv)gv.value=isPct?P.goalPct:P.goalAmt;
+  const yrs=Math.max(0,P.ret-P.age),ap=$("cmpApply");ap.hidden=true;
+  if(yrs<=0||(P.amt<=0&&pfTotal()<=0)){$("cmpVerdict").textContent="ใส่อายุ อายุเกษียณ และเงินลงทุนต่อเดือนด้านบนก่อน";$("cmpTable").innerHTML="";$("cmpStocks").textContent="";return;}
+  const ps=portfolioSet(),start=ps[0].start,fm=v=>v>=1e6?(v/1e6).toFixed(2)+" ล้าน":baht(v);
+  const G=isPct?fvConst(P.goalPct,P.amt,yrs,start):P.goalAmt,capV=fvConst(40,P.amt,yrs,start);
+  const req=isPct?P.goalPct:(G<=fvConst(-10,P.amt,yrs,start)?-10:G>capV?41:solveUp(r=>fvConst(r,P.amt,yrs,start),-10,40,G));
+  const hit=ps.find(p=>p.mid>=G*0.999),best=ps[1].sat>0?ps[1]:ps[0],cur=satAt(P.age)>0?"hyb":"etf";
+  let pick,msg;const goalTxt=isPct?"ผลตอบแทน "+P.goalPct+"% ต่อปี":"เงิน "+fm(G)+" บาทตอนอายุ "+P.ret+" (ต้องได้ผลตอบแทนเฉลี่ย "+(req>40?"เกิน 40":req.toFixed(1))+"% ต่อปี)";
+  const wayOut=()=>{const need=solveUp(a=>fvConst(best.eff,a,yrs,start),0,P.amt*100+1e7,G);let ex=0;for(let y=1;y<=30;y++){if(fvConst(best.eff,P.amt,yrs+y,start)>=G){ex=y;break;}}
+    return " ถ้าจะถึงเป้าด้วยพอร์ต "+best.name+": ลงทุนเดือนละราว "+baht(Math.ceil(need/100)*100)+" บาท (จากเดิม "+baht(P.amt)+")"+(ex?" หรือลงทุนต่ออีก "+ex+" ปี":" หรือลงทุนนานขึ้นเกิน 30 ปี");};
+  if(hit&&hit.fit){pick=hit;msg="ระบบเลือก: พอร์ต "+hit.name+" เป้าของคุณคือ"+goalTxt+" พอร์ตนี้เสี่ยงน้อยที่สุดในสามแบบที่ยังถึงเป้า (คาดหวังเฉลี่ย "+hit.eff.toFixed(1)+"% ต่อปี) และอยู่ในกรอบอายุ "+P.age+" ระดับความเสี่ยง"+RISK[P.risk][0];}
+  else if(hit){pick=best;msg="เป้าของคุณคือ"+goalTxt+" พอร์ตเดียวที่ถึงตามสมมติฐานคือหุ้นรายตัวล้วน ("+hit.eff.toFixed(1)+"%) แต่พอร์ตนี้เกินกรอบที่เหมาะกับเงินเกษียณทั้งก้อน เพราะไม่มีสินทรัพย์ปลอดภัยและถือแค่ "+hit.n+" บริษัท ระบบจึงเลือกพอร์ต "+best.name+" ("+best.eff.toFixed(1)+"%) ซึ่งยังขาดเป้า "+fm(G-best.mid)+" บาท"+wayOut();}
+  else{pick=best;msg="เป้าของคุณคือ"+goalTxt+" ไม่มีพอร์ตไหนถึงเป้าตามสมมติฐานปัจจุบัน สูงสุดคือหุ้นรายตัวล้วนที่ "+ps[2].eff.toFixed(1)+"% ระบบเลือกพอร์ต "+best.name+" ("+best.eff.toFixed(1)+"%) ซึ่งเป็นพอร์ตที่ให้ผลตอบแทนสูงสุดในกรอบอายุและความเสี่ยงของคุณ ยังขาดเป้า "+fm(G-best.mid)+" บาท"+wayOut();}
+  $("cmpVerdict").textContent=msg;
+  if(pick.key!==cur&&!(pick.key==="hyb"&&P.risk==="cons")){ap.hidden=false;ap.textContent="ปรับแผนเป็นพอร์ต "+pick.name;ap.dataset.k=pick.key;}
+  const row=(lab,f,cl)=>'<tr'+(cl==="sep"?' class="sep"':'')+'><td>'+lab+'</td>'+ps.map(p=>'<td class="'+(p.key===pick.key?"pick ":"")+(cl==="money"?"money":"")+'">'+f(p)+'</td>').join("")+'</tr>';
+  const pc=v=>'<span class="'+cls(v)+'">'+pct(v,1)+'</span>';
+  $("cmpTable").innerHTML='<table class="plain cmp"><thead><tr><th></th>'+ps.map(p=>'<th class="'+(p.key===pick.key?"pick":"")+'">'+p.name+'<small>'+(p.key===pick.key?"ระบบเลือก":"")+(p.key===cur?(p.key===pick.key?" · ":"")+"ใช้อยู่":"")+'</small></th>').join("")+'</tr></thead><tbody>'+
+    row("คาดหวังเฉลี่ยต่อปี",p=>isFinite(p.eff)?p.eff.toFixed(1)+"%":"—")+
+    row("มูลค่าตอนเกษียณ",p=>fm(p.mid),"money")+
+    row("กรณีแย่",p=>fm(p.lo),"money")+row("กรณีดี",p=>fm(p.hi),"money")+
+    row("ถึงเป้าไหม",p=>p.mid>=G*0.999?'<span class="up">ถึง</span>':'<span class="down">ขาด '+fm(G-p.mid)+'</span>')+
+    row("ย้อนหลัง 1 เดือน",p=>pc(p.h.m1),"sep")+row("ย้อนหลัง 1 ปี",p=>pc(p.h.y1))+row("ย้อนหลัง 5 ปี",p=>pc(p.h.y5))+
+    row("ต่ำกว่าจุดสูงสุด 52 สัปดาห์",p=>pct(p.off,1),"sep")+row("ช่วงแกว่งใน 1 ปี",p=>p.rng.toFixed(0)+"%")+
+    row("จำนวนรายการที่ถือ",p=>p.n,"sep")+row("ตัวใหญ่สุด",p=>p.big)+row("สินทรัพย์ปลอดภัย",p=>p.safe.toFixed(0)+"%")+
+    row("ความเหมาะสม",p=>p.fit?'<span class="tag g">อยู่ในกรอบ</span>':'<span class="tag r">เกินกรอบ</span>',"sep")+'</tbody></table>';
+  $("cmpStocks").textContent="พอร์ตหุ้นล้วนใช้ "+ps[2].n+" ตัว น้ำหนักเท่ากัน: "+ps[2].pos.map(x=>x.e.t).join(", ")+" · กรณีแย่และดีของพอร์ตหุ้นล้วนใช้ช่วง ±4 จุดต่อปี กว้างกว่าอีกสองพอร์ตที่ใช้ ±2 จุด เพราะหุ้นรายตัวผันผวนกว่า"+(P.risk==="cons"?" · ระดับความเสี่ยงน้อยไม่มีหุ้นรายตัว พอร์ตผสมจึงเท่ากับ ETF ล้วน":"");
+}
+$("goalMode").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.goalMode=b.dataset.g;savePlan();renderCompare();});
+$("goalVal").addEventListener("input",ev=>{const v=parseFloat(ev.target.value);if(!isFinite(v)||v<0)return;if(P.goalMode==="pct")P.goalPct=Math.min(40,v);else P.goalAmt=v;savePlan();renderCompare();});
+$("cmpApply").addEventListener("click",ev=>{const k=ev.currentTarget.dataset.k;P.sat=k==="hyb";$("planSat").checked=P.sat;savePlan();updatePlan();});
+/* ===== STOCK MARKET TAB ===== */
+const SS={sel:"NVDA",sortKey:"period",sortDir:-1};
+function renderStocks(){
+  if(!$("sBody"))return;
+  const P7=PERIODS.find(p=>p[0]===S.period),sc={},okm={};scoreStocks().forEach(r=>{sc[r.e.t]=r.score;okm[r.e.t]=r.ok;});
+  const sat=satAt(P.age),picked=pickStocks(satCount(sat)).map(r=>r.e.t);
+  const get=e=>SS.sortKey==="period"?e.pr[S.period]:SS.sortKey==="score"?sc[e.t]:SS.sortKey==="off"?offHigh(e):SS.sortKey==="fpe"?(e.fpe==null?1e9:e.fpe):SS.sortKey==="p"?e.p:SS.sortKey==="t"?e.t:e.pr[SS.sortKey];
+  const r=ST.slice().sort((a,b)=>{const x=get(a),y=get(b);return(x<y?-1:x>y?1:0)*SS.sortDir;});
+  $("sPeriods").innerHTML=PERIODS.map(p=>'<button type="button" data-p="'+p[0]+'" aria-pressed="'+(S.period===p[0])+'" title="'+p[2]+'">'+p[1]+'</button>').join("");
+  const v=r.map(e=>e.pr[S.period]),avg=v.reduce((a,b)=>a+b,0)/v.length,upN=v.filter(x=>x>0).length,by=r.slice().sort((a,b)=>b.pr[S.period]-a.pr[S.period]),best=by[0],worst=by[by.length-1];
+  $("sSum").innerHTML='<div><span class="lab">ค่าเฉลี่ย '+P7[2]+'</span><span class="big '+cls(avg)+'">'+pct(avg)+'</span><span class="who">จาก '+r.length+' บริษัท</span></div>'+
+    '<div><span class="lab">ขึ้น / ลง</span><span class="big"><span class="up">'+upN+'</span> <span class="muted">/</span> <span class="down">'+(r.length-upN)+'</span></span><span class="who">ในช่วง '+P7[2]+'</span></div>'+
+    '<div><span class="lab">ดีที่สุด</span><span class="big '+cls(best.pr[S.period])+'">'+pct(best.pr[S.period])+'</span><span class="who">'+best.t+' · '+esc(best.n)+'</span></div>'+
+    '<div><span class="lab">แย่ที่สุด</span><span class="big '+cls(worst.pr[S.period])+'">'+pct(worst.pr[S.period])+'</span><span class="who">'+worst.t+' · '+esc(worst.n)+'</span></div>';
+  const arrow=k=>{const on=(SS.sortKey===k)||(SS.sortKey==="period"&&k===S.period);return on?(SS.sortDir<0?" ↓":" ↑"):"";};
+  const h=(k,lab,c)=>'<th class="'+(c||"")+((k===S.period||SS.sortKey===k)?" on":"")+'"><button type="button" data-s="'+k+'">'+lab+arrow(k)+'</button></th>';
+  $("sHead").innerHTML=h("t","หุ้น","l name")+h("p","ราคา")+PERIODS.map(p=>h(p[0],p[1])).join("")+h("off","จากจุดสูงสุด 52W")+'<th class="l">สถานะ</th>'+h("fpe","P/E ล่วงหน้า")+h("score","คะแนน")+'<th class="l">แผน</th>';
+  $("sBody").innerHTML=r.map(e=>{const z=zone(e),o=offHigh(e);
+    return '<tr data-t="'+e.t+'" class="'+(e.t===SS.sel?"sel":"")+'"><td class="l name"><span class="tk">'+e.t+'</span><span class="nm">'+esc(e.n)+' · '+esc(e.sector||"")+'</span></td>'+
+      '<td class="num">'+e.p.toFixed(2)+'</td>'+PERIODS.map(p=>{const x=e.pr[p[0]];return '<td class="heat '+cls(x)+'" style="'+heat(x,p[3]*1.5)+'">'+pct(x)+'</td>';}).join("")+
+      '<td class="num '+(o<-10?"down":"")+'">'+pct(o,1)+'</td><td class="l"><span class="tag '+z[1]+'">'+z[0]+'</span></td>'+
+      '<td class="num">'+(e.fpe==null?"—":(+e.fpe).toFixed(1))+'</td><td class="num">'+sc[e.t].toFixed(0)+'</td><td class="l">'+(picked.includes(e.t)?'<span class="tag g">เลือก</span>':'')+'</td></tr>';}).join("");
+  $("sList").innerHTML=r.map(e=>{const x=e.pr[S.period];
+    return '<div class="mrow'+(e.t===SS.sel?" sel":"")+'" data-t="'+e.t+'" tabindex="0" role="button" aria-label="ดูรายละเอียด '+e.t+'" style="padding-left:12px;grid-template-columns:minmax(0,1fr) auto">'+
+      '<div><span class="tk">'+e.t+'</span>'+(picked.includes(e.t)?' <span class="tag g" style="font-size:10.5px;padding:1px 6px">เลือก</span>':'')+'<span class="nm">'+esc(e.n)+' · คะแนน '+sc[e.t].toFixed(0)+'</span></div>'+
+      '<div class="r"><span class="pill '+cls(x)+'" style="'+heat(x,P7[3]*1.5)+'">'+pct(x)+'</span><span class="px">$'+e.p.toFixed(2)+'</span></div></div>';}).join("");
+  $("sRankTitle").textContent="จัดอันดับ "+P7[2]+" (เฉพาะราคา)";
+  const mx=Math.max.apply(null,by.map(e=>Math.abs(e.pr[S.period])).concat([0.01]));
+  $("sRank").innerHTML=by.map(e=>'<button type="button" class="bar'+(e.t===SS.sel?" cur":"")+'" data-t="'+e.t+'" title="'+esc(e.n)+'">'+barRow(e.t,e.pr[S.period],mx)+'</button>').join("");
+  const e=ST.find(x=>x.t===SS.sel)||ST[0],z=zone(e),o=offHigh(e),above=e.p>=e.m50,pos=clamp((e.p-e.lo)/(e.hi-e.lo),0,1)*100,mpos=(e.m50-e.lo)/(e.hi-e.lo)*100,m2=Math.max.apply(null,PERIODS.map(p=>Math.abs(e.pr[p[0]])).concat([0.01]));
+  const f=(v,d,u)=>v==null||!isFinite(v)?"—":(+v).toFixed(d==null?1:d)+(u||"");
+  $("sDetail").innerHTML='<div class="dhead"><div><h2><span class="num">'+e.t+'</span> · '+esc(e.n)+'</h2><p class="muted">'+esc(e.sector||"")+' · ราคาปิด '+thDate(e.d)+'</p></div>'+
+    '<div style="text-align:right"><div class="px">$'+e.p.toFixed(2)+'</div><span class="num '+cls(e.pr.d1)+'">'+pct(e.pr.d1)+' วันล่าสุด</span></div></div>'+
+    '<div class="tags"><span class="tag '+z[1]+'">'+z[0]+' '+pct(o,1)+' จากจุดสูงสุด</span><span class="tag '+(above?"g":"r")+'">'+(above?"ราคาอยู่เหนือ":"ราคาอยู่ใต้")+' MA50</span>'+
+      '<span class="tag">คะแนน '+sc[e.t].toFixed(0)+' / 100</span>'+(picked.includes(e.t)?'<span class="tag g">อยู่ในแผนของคุณ</span>':!okm[e.t]?'<span class="tag r">ไม่ผ่านเกณฑ์</span>':'')+'</div>'+
+    '<div><h3>ผลตอบแทนแต่ละช่วง (เฉพาะราคา)</h3><div class="bars" style="margin-top:8px">'+PERIODS.map(p=>'<div class="bar'+(p[0]===S.period?" cur":"")+'">'+barRow(p[1],e.pr[p[0]],m2)+'</div>').join("")+'</div></div>'+
+    '<div class="range"><h3>กรอบราคา 52 สัปดาห์</h3><div class="rtrk">'+(mpos>=0&&mpos<=100?'<u style="left:'+mpos.toFixed(1)+'%" title="MA50"></u>':"")+'<i style="left:'+pos.toFixed(1)+'%"></i></div>'+
+      '<div class="rlab"><span class="num">ต่ำสุด $'+e.lo.toFixed(2)+'</span><span>MA50 <span class="num">$'+f(e.m50,2)+'</span></span><span class="num">สูงสุด $'+e.hi.toFixed(2)+'</span></div></div>'+
+    '<div><h3>พื้นฐานธุรกิจ</h3><div class="facts" style="margin-top:8px">'+
+      '<div><span>มูลค่าบริษัท</span><b>'+(e.mcap?"$"+e.mcap:"—")+'</b></div><div><span>P/E ย้อนหลัง</span><b>'+f(e.pe)+'</b></div><div><span>P/E ล่วงหน้า</span><b>'+f(e.fpe)+'</b></div>'+
+      '<div><span>อัตรากำไรสุทธิ</span><b>'+f(e.nm,1,"%")+'</b></div><div><span>ROE</span><b>'+f(e.roe,1,"%")+'</b></div><div><span>หนี้ต่อทุน</span><b>'+f(e.de,2)+'</b></div>'+
+      '<div><span>รายได้โต 5 ปี (ต่อปี)</span><b>'+f(e.rev5,1,"%")+'</b></div><div><span>กำไรต่อหุ้นโต 5 ปี (ต่อปี)</span><b>'+f(e.eps5,1,"%")+'</b></div><div><span>กระแสเงินสดอิสระ/ราคา</span><b>'+f(e.fcfy,1,"%")+'</b></div>'+
+      '<div><span>อัตราปันผล</span><b>'+(e.y==null?"ไม่จ่าย":f(e.y,2,"%"))+'</b></div><div><span>Beta</span><b>'+f(e.beta,2)+'</b></div><div><span>ตลาด = 1.00</span><b>'+(e.beta==null?"—":e.beta>1.2?"ผันผวนกว่าตลาด":e.beta<0.8?"ผันผวนน้อยกว่าตลาด":"ใกล้เคียงตลาด")+'</b></div></div></div>';
+}
+function selectStock(t,scroll){SS.sel=t;renderStocks();if(scroll){const m=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;$("sDetail").scrollIntoView({block:"nearest",behavior:m?"auto":"smooth"});}}
+$("sPeriods").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;S.period=b.dataset.p;SS.sortKey="period";SS.sortDir=-1;save();render();});
+$("sHead").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;const k=b.dataset.s;
+  if(PERIODS.some(p=>p[0]===k)){if(S.period===k&&SS.sortKey==="period")SS.sortDir*=-1;else{S.period=k;SS.sortKey="period";SS.sortDir=-1;}save();render();return;}
+  if(SS.sortKey===k)SS.sortDir*=-1;else{SS.sortKey=k;SS.sortDir=(k==="t"||k==="fpe")?1:-1;}renderStocks();});
+function stockClick(ev){const row=ev.target.closest("[data-t]");if(row)selectStock(row.dataset.t,true);}
+$("sBody").addEventListener("click",stockClick);$("sList").addEventListener("click",stockClick);
+$("sList").addEventListener("keydown",ev=>{if(ev.key==="Enter"&&ev.target.dataset&&ev.target.dataset.t)selectStock(ev.target.dataset.t,true);});
+$("sRank").addEventListener("click",ev=>{const b=ev.target.closest("[data-t]");if(b)selectStock(b.dataset.t,false);});
+const TABS=["plan","portfolio","market","stocks","tools"];
+function setTab(t,push){if(!TABS.includes(t))t="plan";
+  TABS.forEach(k=>{$("v-"+k).hidden=k!==t;});
+  [...$("tabs").children].forEach(b=>{if(b.dataset.tab===t)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
+  if(push){try{if(location.hash!=="#"+t)location.hash=t;}catch(e){}}
+  try{window.scrollTo(0,0);}catch(e){}}
+$("tabs").addEventListener("click",ev=>{const b=ev.target.closest("button");if(b)setTab(b.dataset.tab,true);});
+$("planDo").addEventListener("click",ev=>{const sb=ev.target.closest("[data-s]");if(sb){setTab("stocks",true);selectStock(sb.dataset.s,true);return;}const b=ev.target.closest("[data-t]");if(!b)return;setTab("market",true);select(b.dataset.t,true);});
+try{window.addEventListener("hashchange",()=>setTab(location.hash.slice(1),false));}catch(e){}
+render();renderDCA();initPlan();initPF();
+(function(){let h="";try{h=location.hash.slice(1);}catch(e){}setTab(h||"plan",false);})();
+</script>
+<script type="module">
+const FIREBASE_CONFIG = null;
+const $ = id => document.getElementById(id);
+const KEYS = ["etfRadar","etfRadarPlan","etfRadarPF","etfRadarHide"], OWNER = "etfRadarOwner";
+const ls = {get:k=>{try{return localStorage.getItem(k);}catch(e){return null;}}, set:(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}}, del:k=>{try{localStorage.removeItem(k);}catch(e){}}};
+const FORMS = ["gSignin","gSignup","gReset","gVerify","gSetup"];
+function show(id){FORMS.forEach(f=>{$(f).hidden=f!==id;});$("gate").hidden=false;}
+function msg(t,kind){const m=$("gMsg");m.hidden=!t;m.textContent=t||"";m.className="gmsg"+(kind?" "+kind:"");}
+function busy(form,on){form&&form.querySelectorAll("button,input").forEach(x=>{x.disabled=on;});}
+document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{msg("");show(b.dataset.go);}));
+
+if(!FIREBASE_CONFIG){show("gSetup");}
+else{
+  const [{initializeApp},A,F] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"),
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")]);
+  const app = initializeApp(FIREBASE_CONFIG), auth = A.getAuth(app), db = F.getFirestore(app);
+  auth.languageCode = "th";
+  const TH = {"auth/invalid-email":"รูปแบบอีเมลไม่ถูกต้อง","auth/missing-email":"ใส่อีเมลก่อน","auth/invalid-credential":"อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+    "auth/wrong-password":"อีเมลหรือรหัสผ่านไม่ถูกต้อง","auth/user-not-found":"อีเมลหรือรหัสผ่านไม่ถูกต้อง","auth/missing-password":"ใส่รหัสผ่านก่อน",
+    "auth/email-already-in-use":"อีเมลนี้สมัครไว้แล้ว ลองเข้าสู่ระบบ หรือกดลืมรหัสผ่าน","auth/weak-password":"รหัสผ่านสั้นเกินไป ใช้อย่างน้อย 8 ตัวอักษร",
+    "auth/too-many-requests":"ลองหลายครั้งเกินไป รอสักครู่แล้วลองใหม่","auth/network-request-failed":"เชื่อมต่ออินเทอร์เน็ตไม่ได้ ลองใหม่อีกครั้ง",
+    "auth/requires-recent-login":"เพื่อความปลอดภัย ออกจากระบบแล้วเข้าสู่ระบบใหม่ก่อน จึงจะลบบัญชีได้","auth/user-disabled":"บัญชีนี้ถูกระงับ"};
+  const th = e => TH[e&&e.code] || "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง";
+  const docRef = uid => { const r = F.doc(db,"users",uid);
+    return {get:async()=>{const s=await F.getDoc(r);return{exists:s.exists(),data:()=>s.data()};},
+            set:d=>F.setDoc(r,JSON.parse(JSON.stringify(d)))}; };
+  function resetLocal(){KEYS.forEach(ls.del);}
+
+  async function enter(u){
+    await u.getIdToken(true);
+    $("gate").hidden=true;msg("");
+    window.ER_signedIn && window.ER_signedIn({uid:u.uid,email:u.email,ref:docRef(u.uid)});
+  }
+  A.onAuthStateChanged(auth, async u => {
+    const owner = ls.get(OWNER);
+    if(!u){ if(owner){ resetLocal(); ls.del(OWNER); location.reload(); return; } show("gSignin"); return; }
+    if(owner !== u.uid){ resetLocal(); ls.set(OWNER,u.uid); location.reload(); return; }
+    if(!u.emailVerified){ $("vEmail").textContent=u.email; show("gVerify"); return; }
+    enter(u);
+  });
+
+  $("gSignin").addEventListener("submit", async ev => { ev.preventDefault(); const f=ev.currentTarget; msg(""); busy(f,true);
+    try{ await A.signInWithEmailAndPassword(auth,$("siEmail").value.trim(),$("siPass").value); }
+    catch(e){ msg(th(e),"err"); } busy(f,false); });
+
+  $("gSignup").addEventListener("submit", async ev => { ev.preventDefault(); const f=ev.currentTarget; msg("");
+    const em=$("suEmail").value.trim(), p1=$("suPass").value, p2=$("suPass2").value;
+    if(p1.length<8){msg("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร","err");return;}
+    if(p1!==p2){msg("รหัสผ่านสองช่องไม่ตรงกัน","err");return;}
+    if(!$("suOk").checked){msg("กรุณาอ่านและยอมรับการเก็บข้อมูลก่อนสมัคร","err");return;}
+    busy(f,true);
+    try{ const c=await A.createUserWithEmailAndPassword(auth,em,p1); await A.sendEmailVerification(c.user); }
+    catch(e){ msg(th(e),"err"); } busy(f,false); });
+
+  $("gReset").addEventListener("submit", async ev => { ev.preventDefault(); const f=ev.currentTarget; busy(f,true);
+    try{ await A.sendPasswordResetEmail(auth,$("rsEmail").value.trim()); msg("ถ้าอีเมลนี้มีบัญชีอยู่ ระบบส่งลิงก์ตั้งรหัสผ่านใหม่ให้แล้ว ดูในกล่องอีเมลหรือโฟลเดอร์ Spam","ok"); }
+    catch(e){ msg(th(e),"err"); } busy(f,false); });
+
+  $("vDone").addEventListener("click", async () => { const u=auth.currentUser; if(!u) return;
+    try{ await u.reload(); if(auth.currentUser.emailVerified){ enter(auth.currentUser); } else msg("ยังไม่ได้ยืนยัน กดลิงก์ในอีเมลก่อน แล้วกดปุ่มนี้อีกครั้ง","err"); }
+    catch(e){ msg(th(e),"err"); } });
+  $("vResend").addEventListener("click", async () => { const u=auth.currentUser; if(!u) return;
+    try{ await A.sendEmailVerification(u); msg("ส่งอีเมลยืนยันอีกครั้งแล้ว","ok"); } catch(e){ msg(th(e),"err"); } });
+  $("vOut").addEventListener("click", () => A.signOut(auth));
+
+  $("acctOut").addEventListener("click", async () => { if(window.ER_flush) await window.ER_flush(); A.signOut(auth); });
+  let delArmed = 0;
+  $("acctDel").addEventListener("click", async ev => { const b=ev.currentTarget, u=auth.currentUser; if(!u) return;
+    if(Date.now()-delArmed>6000){ delArmed=Date.now(); b.textContent="กดอีกครั้งเพื่อยืนยันการลบถาวร"; setTimeout(()=>{b.textContent="ลบบัญชีและข้อมูลทั้งหมด";},6000); return; }
+    b.disabled=true;
+    try{ await F.deleteDoc(F.doc(db,"users",u.uid)); await A.deleteUser(u); }
+    catch(e){ const m=$("acctMsg"); m.textContent=th(e); m.className="note down"; b.disabled=false; b.textContent="ลบบัญชีและข้อมูลทั้งหมด"; } });
+}
+</script>
+</body>
+</html>
