@@ -447,6 +447,7 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
       <div id="oBody"></div>
       <p class="gmsg err" id="oMsg" hidden aria-live="polite"></p>
       <div class="onav"><button class="link" id="oBack" type="button">ย้อนกลับ</button><button class="go" id="oNext" type="button">ถัดไป</button></div>
+      <div class="glinks"><span></span><button type="button" id="oOut">ออกจากระบบ</button></div>
     </div>
   </div>
 </div>
@@ -1439,6 +1440,7 @@ const OSTEPS=[
 const oSteps=()=>OSTEPS.filter(s=>!(s.skip&&s.skip(OB.a)));
 function showOnboarding(fromUser){
   OB.i=0;OB.a=fromUser?{age:P.age,ret:P.ret,amt:P.amt,risk:P.risk,style:P.style,sat:P.sat?"yes":"no"}:{};
+  OB.edit=!!fromUser;$("oOut").textContent=OB.edit?"ยกเลิก ใช้แผนเดิม":"ยังไม่ตอบตอนนี้ ออกจากระบบ";
   $("onb").hidden=false;renderOnb();}
 function oMsg(t){const m=$("oMsg");m.hidden=!t;m.textContent=t||"";}
 function renderOnb(){const st=oSteps(),s=st[OB.i],n=st.length;
@@ -1468,6 +1470,7 @@ $("oBody").addEventListener("keydown",ev=>{if(ev.key==="Enter"&&ev.target.id==="
 $("oNext").addEventListener("click",()=>{if(!oRead())return;if(OB.i<oSteps().length-1){OB.i++;renderOnb();}else finishOnb();});
 $("oBack").addEventListener("click",()=>{if(OB.i>0){OB.i--;renderOnb();}});
 $("onbAgain").addEventListener("click",()=>showOnboarding(true));
+$("oOut").addEventListener("click",()=>{if(OB.edit){$("onb").hidden=true;return;}$("acctOut").click();});
 /* ===== COMPARE: ETF only vs hybrid vs stocks only, then pick the least risky one that reaches the goal ===== */
 function fvConst(rate,amt,yrs,start){const rm=Math.pow(1+Math.max(-0.99,rate/100),1/12)-1;let v=start;for(let m=0;m<yrs*12;m++)v=(v+amt)*(1+rm);return v;}
 function solveUp(f,lo,hi,target){for(let i=0;i<60;i++){const mid=(lo+hi)/2;if(f(mid)<target)lo=mid;else hi=mid;}return(lo+hi)/2;}
