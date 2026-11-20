@@ -30,6 +30,14 @@ SECT = {"technology": "Technology", "healthcare": "Healthcare", "financial_servi
         "energy": "Energy", "basic_materials": "Materials", "realestate": "Real Estate",
         "utilities": "Utilities"}
 
+APPSECT = {"Consumer Defensive": "Consumer Staples", "Consumer Cyclical": "Consumer Discretionary",
+           "Financial Services": "Financials"}
+for it in items:  # names the app uses
+    if it.get("k") == "stk" and it.get("sector") in APPSECT:
+        it["sector"] = APPSECT[it["sector"]]
+    if it.get("k") == "stk" and it.get("y") == 0:
+        it["y"] = None
+
 def cagr_rows(df, names):
     for n in names:
         if df is not None and n in df.index:
@@ -61,9 +69,11 @@ for it in items:
             fill(it, "de", de)
             fcf, cap = num(info.get("freeCashflow"), 1, 0), num(info.get("marketCap"), 1, 0)
             fill(it, "fcfy", round(fcf / cap * 100, 1) if fcf and cap else None)
-            fill(it, "y", num(info.get("trailingAnnualDividendYield"), 100, 2))
+            fill(it, "y", num(info.get("trailingAnnualDividendYield"), 100, 2) or None)
             fill(it, "beta", num(info.get("beta")))
-            fill(it, "sector", info.get("sector"))
+            fill(it, "sector", APPSECT.get(info.get("sector"), info.get("sector")))
+            if it.get("nm") == 0 and it.get("pe") is None:
+                it["nm"] = None  # Yahoo reports 0 when the margin is unknown
             fill(it, "n", info.get("shortName"))
             try:
                 inc = tk.income_stmt
@@ -94,8 +104,8 @@ for it in items:
 
 json.dump(q, open("quotes.json", "w"), ensure_ascii=False, separators=(",", ":"))
 
-POS = r"beat|beats|surge|soar|jump|rall|record|upgrade|raise[sd]? (guidance|outlook|target)|strong|growth|wins?|approval|approved|buy rating|outperform|profit rise|tops"
-NEG = r"miss|plunge|slump|tumble|fall|falls|drop|downgrade|cut[s]? (guidance|outlook|target)|lawsuit|probe|investigation|recall|weak|loss|layoff|antitrust|fine[ds]?|warn|sell-off|selloff|underperform|halt"
+POS = r"\b(beats?|surg\w*|soar\w*|jump\w*|rall(y|ies|ied)|record high|upgrade[sd]?|rais\w* (guidance|outlook|forecast|target)|strong|wins?|approv\w*|outperform\w*|tops|climb\w*|gains?)\b"
+NEG = r"\b(miss(es|ed)?|plung\w*|slump\w*|tumbl\w*|fall(s|ing)?|fell|drop(s|ped)?|downgrade[sd]?|cut\w* (guidance|outlook|forecast|target)|lawsuit|probe|investigation|recall|weak\w*|loss(es)?|layoffs?|antitrust|fined|warn\w*|sell-?off|underperform\w*|halt\w*|retreat\w*|slid(e|es)?|new lows)\b"
 
 news = {}
 for it in [i for i in items if i.get("k") == "stk"]:

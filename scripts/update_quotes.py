@@ -14,6 +14,16 @@ tickers = [i["t"] for i in items if i.get("t") and i["t"] != "USDTHB"]
 raw = yf.download(tickers + ["THB=X"], period="16y", interval="1d",
                   auto_adjust=False, group_by="ticker", progress=False, threads=True)
 
+# retry tickers the threaded download dropped (e.g. a locked cache)
+missing = [t for t in tickers if t not in raw.columns.get_level_values(0) or raw[t]["Close"].dropna().empty]
+for t in missing:
+    try:
+        one = yf.download(t, period="16y", interval="1d", auto_adjust=False, group_by="ticker", progress=False, threads=False)
+        if not one.empty:
+            raw = raw.drop(columns=t, level=0, errors="ignore").join(one, how="outer")
+    except Exception as e:
+        print("retry failed", t, e)
+
 def pct(a, b):
     return None if b is None or not b or pd.isna(b) else round((a / b - 1) * 100, 2)
 
@@ -54,10 +64,6 @@ for it in items:
         p, d = round(float(close.iloc[-1]), 2), close.index[-1].strftime("%Y-%m-%d")
         if it.get("p") and abs(p / it["p"] - 1) > 0.4:
             skipped.append(f"{t}: price jump {it['p']}->{p}"); continue
-        if os.environ.get("CHECK_MA") and t in ("QQQ", "SMH", "AAPL", "MSFT"):
-            w = close.resample("W-FRI").last().dropna()
-            print("MA check", t, "m20w", round(float(w.iloc[-20:].mean()), 2),
-                  "m50w", round(float(w.iloc[-50:].mean()), 2), "stored", it.get("m20"), it.get("m50"))
         if d < it.get("d", ""):
             continue
         wk = close.resample("W-FRI").last().dropna()  # ChartRow's MAs are weekly
