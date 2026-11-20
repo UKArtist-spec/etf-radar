@@ -483,7 +483,7 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
     <div class="seg txt big" id="planRisk" role="group" aria-label="ระดับความเสี่ยง">
       <button data-r="cons" type="button">น้อย</button><button data-r="mod" type="button">ปานกลาง</button><button data-r="agg" type="button">สูง</button>
     </div>
-    <p class="qlabel">อยากได้อะไรจากการลงทุน</p>
+    <p class="qlabel" id="styleLab">อยากได้อะไรจากการลงทุน</p>
     <div class="chips" id="planStyle" role="group" aria-label="เป้าหมายหลักของการลงทุน">
         <button data-s="auto" type="button">ให้ระบบจัดสมดุล</button><button data-s="div" type="button">รับปันผลสม่ำเสมอ</button><button data-s="tech" type="button">เทคโตแรง</button><button data-s="usa" type="button">เกาะตลาดสหรัฐ</button><button data-s="world" type="button">กระจายทั่วโลก</button>
       </div>
@@ -1099,6 +1099,7 @@ function updatePlan(){
     (offs.length?" · ยังไม่ใส่: "+offs.join(", "):"")+(P.pmode==="stk"?" · แผนหุ้นล้วน "+satCount(100)+" ตัว น้ำหนักเท่ากัน คัดจากคุณภาพธุรกิจ การเติบโต ความถูกแพง และความผันผวน ไม่เกิน 2 ตัวต่อกลุ่มธุรกิจ":P.sat&&satAt(P.age)===0&&P.risk==="cons"?" · ระดับความเสี่ยงน้อยไม่มีหุ้นรายตัว":satAt(P.age)>0?" · หุ้นรายตัว "+satAt(P.age)+"% ของพอร์ต "+satCount(satAt(P.age))+" ตัว คัดจากคุณภาพธุรกิจ การเติบโต ความถูกแพง และความผันผวน":"")+" · ETF ของแต่ละกลุ่มคัดจากคะแนน 5 ด้าน: ค่าธรรมเนียม ขนาดกอง อายุกอง การกระจายตัว และผลตอบแทน 10 ปี (ดูคะแนนได้ด้านล่าง)";
   [...$("planStyle").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===P.style));
   [...$("planPMode").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===P.pmode));
+  $("styleLab").hidden=$("planStyle").hidden=P.pmode==="stk";
   $("pmodeDesc").textContent=PMODE[P.pmode]+(P.pmode==="hyb"&&P.risk==="cons"?" · ระดับความเสี่ยงน้อยไม่มีหุ้นรายตัว แผนจึงเท่ากับ ETF ล้วน":P.pmode==="stk"&&P.risk!=="agg"?" · ระดับความเสี่ยงของคุณ ระบบตัดหุ้นที่ผันผวนแรงออกให้":"");
   $("scoreBody").innerHTML=BK.filter(b=>P.on[b.k]).map(b=>{const rows=b.etfs.length>1?scoreGroup(b):[{e:E.find(x=>x.t===b.etfs[0]),age:+LATEST.slice(0,4)-(+E.find(x=>x.t===b.etfs[0]).inc),ok:true,score:null}];
     return rows.map((r,i)=>{const e=r.e,pick=e.t===P.etf[b.k],l=e.cg[4]!=null?pct(e.cg[4],1):e.t==="QQQM"?"ใช้ของ QQQ":"—";
