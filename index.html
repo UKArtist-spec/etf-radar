@@ -242,6 +242,8 @@ details.adv summary{cursor:pointer;font-size:13.5px;color:var(--muted)}
 .buyrow .amt b{font-family:var(--mono);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .buyrow .amt span{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .dohint{font-size:12.5px;color:var(--muted);padding-top:10px;border-top:1px solid var(--line)}
+.rec{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}.rec .go{width:100%;align-self:stretch}
+.recmsg{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
 .ret{display:flex;flex-direction:column;gap:14px}
 .hero{display:flex;flex-direction:column;gap:2px}
 .hero span{font-size:13px;color:var(--muted)}
@@ -1083,6 +1085,16 @@ function renderPlanTable(){
   updatePlan();
 }
 
+/* ===== link the plan to the portfolio: record this month's buys as holdings ===== */
+let PLAN_BUYS=[],REC_UNDO=null,REC_ARM=false;
+function recordHtml(){if(!PLAN_BUYS.length)return"";const done=PF.lastBuy===monthKey();
+  return '<div class="rec">'+(REC_UNDO?'<p class="recmsg up" role="status">บันทึกลงพอร์ตแล้ว '+REC_UNDO.n+' รายการ <button type="button" class="link" id="recGo">ดูพอร์ต</button> <button type="button" class="link" id="recUndo">ยกเลิก</button></p>':
+    '<button type="button" class="go" id="recBtn">'+(done?(REC_ARM?"กดอีกครั้งเพื่อบันทึกเพิ่ม":"เดือนนี้บันทึกแล้ว · บันทึกเพิ่มอีกครั้ง"):"ซื้อตามนี้แล้ว บันทึกลงพอร์ต")+'</button>'+
+    '<p class="muted" style="font-size:12px">ระบบแปลงยอดเงินเป็นจำนวนหน่วยจากราคาล่าสุดและอัตรา '+PF.fx.toFixed(2)+' บาท/ดอลลาร์ ถ้าราคาที่ซื้อจริงต่างไป แก้จำนวนหน่วยได้ในแท็บพอร์ต</p>')+'</div>';}
+function recordBuys(){const before=JSON.parse(JSON.stringify(PF.items)),lb=PF.lastBuy;let n=0;
+  PLAN_BUYS.forEach(x=>{const e=(x.k==="etf"?E:ST).find(y=>y.t===x.t);if(!e||!(e.p>0))return;const u=Math.round(x.baht/(e.p*PF.fx)*1e6)/1e6;if(!(u>0))return;
+    const it=PF.items.find(y=>y.k===x.k&&y.t===x.t);if(it)it.u=Math.round((it.u+u)*1e6)/1e6;else{if(PF.items.length>=60)return;PF.items.push({id:newId(),k:x.k,n:"",t:x.t,u:u});}n++;});
+  if(!n)return;PF.lastBuy=monthKey();REC_UNDO={items:before,lb:lb,n:n};REC_ARM=false;pfChanged(true);}
 function updatePlan(){
   syncHold();
   const t=targets(),sum=wsum(t),m=mkt(),yrs=Math.max(0,P.ret-P.age);
@@ -1112,11 +1124,12 @@ function updatePlan(){
   if(!P.custom&&P.autoMk)$("planRule").textContent+=" · ระบบปรับน้ำหนักตามแนวโน้ม 1 ปีให้อัตโนมัติ: "+diffNote(round100(weightsAt(P.age,m.add)),t);
   $("riskDesc").textContent={cons:"ระมัดระวัง: รับการขาดทุนชั่วคราวได้น้อย เน้นรักษาเงินต้น ผลตอบแทนคาดหวังต่ำกว่า",mod:"ปานกลาง: รับความผันผวนได้พอสมควร ยอมให้มูลค่าลดลงชั่วคราวราว 20–30% ได้",agg:"เชิงรุก: ยอมให้มูลค่าลดลงชั่วคราว 30–50% ได้โดยไม่ขายทิ้ง เพื่อผลตอบแทนระยะยาวที่สูงกว่า"}[P.risk]+" · "+{auto:"ให้ระบบจัดสมดุล: ระบบเลือกกลุ่มตามอายุและความเสี่ยงโดยไม่เน้นด้านใดเป็นพิเศษ",div:"รับปันผลสม่ำเสมอ: ใส่กลุ่มปันผลตั้งแต่ตอนนี้และเพิ่มน้ำหนัก ไม่ใช้กลุ่มธีม",tech:"เทคโตแรง: เพิ่มน้ำหนัก Growth และเทคโนโลยี ผันผวนมากขึ้น",usa:"เกาะตลาดสหรัฐ: แกนหลักของพอร์ตใช้ ETF หุ้นสหรัฐ",world:"กระจายทั่วโลก: แกนหลักของพอร์ตใช้ ETF หุ้นทั่วโลก ไม่ต้องเลือกประเทศเอง"}[P.style];
   const sat=satAt(P.age),stk=sat>0?pickStocks(satCount(sat)):[],satAmt=stk.length?P.amt*sat/100:0,cs=cashSplit(t,P.amt-satAmt),buys=BK.filter(b=>P.on[b.k]&&Math.round(cs.tr[b.k]||0)>0);
+  PLAN_BUYS=buys.map(b=>({k:"etf",t:P.etf[b.k],baht:cs.tr[b.k]})).concat(stk.map(r=>({k:"stk",t:r.e.t,baht:satAmt/stk.length}))).filter(x=>x.baht>0);
   $("planDo").innerHTML='<div class="doh"><h2>เดือนนี้ซื้ออะไร เท่าไร</h2><b class="money">'+baht(P.amt)+' บาท</b></div>'+
     (buys.length||(stk.length&&P.amt>0)?buys.map(b=>{const e=E.find(x=>x.t===P.etf[b.k]);return '<button class="buyrow" type="button" data-t="'+e.t+'" aria-label="ดูรายละเอียด '+e.t+'"><span class="dot" style="background:var('+b.c+')"></span><span><b class="tk">'+e.t+'</b><span class="nm">'+b.n+' · '+esc(e.th)+'</span></span><span class="amt"><b class="money">'+baht(cs.tr[b.k])+' บาท</b><span>'+(P.amt?Math.round(cs.tr[b.k]/P.amt*100):0)+'%</span></span></button>';}).join("")+stk.map(r=>'<button class="buyrow" type="button" data-s="'+r.e.t+'" aria-label="ดูรายละเอียด '+r.e.t+'"><span class="dot" style="background:var(--c8)"></span><span><b class="tk">'+r.e.t+'</b><span class="nm">หุ้นรายตัว · '+esc(r.e.n)+' · คะแนน '+r.score.toFixed(0)+'</span></span><span class="amt"><b class="money">'+baht(satAmt/stk.length)+' บาท</b><span>'+(sat/stk.length).toFixed(0)+'%</span></span></button>').join(""):'<p class="muted" style="padding:10px 0">ใส่จำนวนเงินที่จะลงทุนต่อเดือนก่อน</p>')+
     (P.pmode==="stk"&&stk.length?'<p class="dohint">แผนหุ้นล้วน: แบ่งเงินเท่ากันทุกตัว ไม่มีสินทรัพย์ปลอดภัย มูลค่าอาจลดลงชั่วคราว 40–60% ในช่วงตลาดแย่ ควรมีเงินสำรองฉุกเฉินแยกไว้ก่อน</p>':'')+
     (stk.length&&buys.length?'<p class="dohint">หุ้นรายตัวรวม '+sat+'% ของเงินลงทุน เป็นส่วนเสริมที่เสี่ยงกว่า ETF ระบบลดสัดส่วนนี้ลงเมื่ออายุมากขึ้น และปิดได้ที่ตัวเลือกด้านบน</p>':'')+
-    '<p class="dohint">'+(cs.tot>0?"ระบบเฉลี่ยเงินเดือนนี้ไปกลุ่มที่ต่ำกว่าเป้า ตามมูลค่าพอร์ต "+baht(cs.tot)+" บาทของ ETF ที่บันทึกไว้ในแท็บพอร์ต":"กดที่แต่ละแถวเพื่อดูข้อมูลกอง เมื่อเริ่มมีพอร์ตแล้ว บันทึกสิ่งที่ถืออยู่ในแท็บพอร์ต ระบบจะเฉลี่ยเงินแต่ละเดือนไปกลุ่มที่ต่ำกว่าเป้าให้เอง")+'</p>';
+    '<p class="dohint">'+(cs.tot>0?"ระบบเฉลี่ยเงินเดือนนี้ไปกลุ่มที่ต่ำกว่าเป้า ตามมูลค่าพอร์ต "+baht(cs.tot)+" บาทของ ETF ที่บันทึกไว้ในแท็บพอร์ต":"กดที่แต่ละแถวเพื่อดูข้อมูลกอง เมื่อเริ่มมีพอร์ตแล้ว บันทึกสิ่งที่ถืออยู่ในแท็บพอร์ต ระบบจะเฉลี่ยเงินแต่ละเดือนไปกลุ่มที่ต่ำกว่าเป้าให้เอง")+'</p>'+recordHtml();
   const act=BK.filter(b=>P.on[b.k]&&t[b.k]>0);
   $("planBar").innerHTML=act.map(b=>'<span style="width:'+(t[b.k]/sum*(100-(stk.length?sat:0))).toFixed(2)+'%;background:var('+b.c+')" title="'+b.n+'"></span>').join("")+(stk.length?'<span style="width:'+sat+'%;background:var(--c8)" title="หุ้นรายตัว '+sat+'%"></span>':'');
   const sc=scoreStocks(),picked=stk.map(r=>r.e.t),f1=v=>v==null||!isFinite(v)?"—":(+v).toFixed(1);
@@ -1315,7 +1328,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 /* ===== PORTFOLIO: every asset in one place; ETF holdings feed the plan and the ETF rebalance ===== */
 const CLS=[{k:"etf",n:"ETF ตามแผน",c:"--c1"},{k:"th",n:"หุ้นไทย",c:"--c3"},{k:"us",n:"หุ้นต่างประเทศ",c:"--c2"},{k:"cr",n:"Crypto",c:"--c4"},{k:"cash",n:"เงินสด",c:"--c7"}];
 const KINDS={etf:"ETF ในระบบ (ราคาอัตโนมัติ)",stk:"หุ้นต่างประเทศในระบบ (ราคาอัตโนมัติ)",fund:"ETF / กองทุนอื่น",th:"หุ้นไทย",us:"หุ้นต่างประเทศ",cr:"Crypto",cash:"เงินสด"};
-const PF={items:[],tg:null,fx:33.77,fxManual:false,hist:{},savedAt:0};
+const PF={items:[],tg:null,fx:33.77,fxManual:false,hist:{},savedAt:0,lastBuy:null};
 let FX_AUTO=null,HIDE=false,remoteDoc=null,pushTimer=null,pushing=false,dirty=false;
 const fin=v=>typeof v==="number"&&isFinite(v);
 const newId=()=>"i"+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);
@@ -1329,7 +1342,7 @@ function loadPF(r){if(!r||typeof r!=="object")return;
   if(r.tg&&typeof r.tg==="object"){PF.tg={};CLS.forEach(c=>{PF.tg[c.k]=fin(r.tg[c.k])?clamp(r.tg[c.k],0,100):0;});}else PF.tg=null;
   if(fin(r.fx)&&r.fx>20&&r.fx<60)PF.fx=r.fx; PF.fxManual=r.fxManual===true;
   if(r.hist&&typeof r.hist==="object"){PF.hist={};Object.keys(r.hist).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().slice(-120).forEach(k=>{if(fin(r.hist[k])&&r.hist[k]>=0)PF.hist[k]=r.hist[k];});}
-  if(fin(r.savedAt))PF.savedAt=r.savedAt;}
+  if(fin(r.savedAt))PF.savedAt=r.savedAt; PF.lastBuy=typeof r.lastBuy==="string"&&/^\d{4}-\d{2}$/.test(r.lastBuy)?r.lastBuy:null;}
 try{loadPF(JSON.parse(localStorage.getItem("etfRadarPF")||"null"));}catch(e){}
 try{HIDE=localStorage.getItem("etfRadarHide")==="1";}catch(e){}
 if(!PF.items.length)BK.forEach(b=>{if(P.hold[b.k]>0)PF.items.push({id:newId(),k:"fund",g:b.k,n:b.n+" (ยอดเดิม)",v:P.hold[b.k]});});
@@ -1338,7 +1351,7 @@ const isAuto=it=>it.k==="etf"||it.k==="stk",itemPx=it=>(it.k==="etf"?E:ST).find(
 const itemVal=it=>isAuto(it)?it.u*itemPx(it)*PF.fx:it.v;
 function stkHeld(){return PF.items.reduce((a,it)=>a+(it.k==="stk"?itemVal(it):0),0);}
 const itemCls=it=>it.k==="etf"||it.k==="fund"?"etf":it.k==="stk"?"us":it.k;
-const itemGroup=it=>it.k==="etf"?BK.find(b=>b.etfs.includes(it.t)).k:it.k==="fund"?it.g:null;
+const itemGroup=it=>it.k==="etf"?((BK.find(b=>b.etfs.includes(it.t))||{}).k||null):it.k==="fund"?it.g:null;
 function syncHold(){BK.forEach(b=>{P.hold[b.k]=0;});PF.items.forEach(it=>{const g=itemGroup(it);if(g)P.hold[g]+=itemVal(it);});}
 const pfTotal=()=>PF.items.reduce((a,it)=>a+itemVal(it),0);
 function clsTotals(){const t={};CLS.forEach(c=>{t[c.k]=0;});PF.items.forEach(it=>{t[itemCls(it)]+=itemVal(it);});return t;}
@@ -1647,7 +1660,11 @@ function setTab(t,push){if(!TABS.includes(t))t="plan";
   if(push){try{if(location.hash!=="#"+t)location.hash=t;}catch(e){}}
   try{window.scrollTo(0,0);}catch(e){}}
 $("tabs").addEventListener("click",ev=>{const b=ev.target.closest("button");if(b)setTab(b.dataset.tab,true);});
-$("planDo").addEventListener("click",ev=>{const sb=ev.target.closest("[data-s]");if(sb){setTab("stocks",true);selectStock(sb.dataset.s,true);return;}const b=ev.target.closest("[data-t]");if(!b)return;setTab("market",true);select(b.dataset.t,true);});
+$("planDo").addEventListener("click",ev=>{
+  const rb=ev.target.closest("#recBtn,#recUndo,#recGo");
+  if(rb){if(rb.id==="recGo"){REC_UNDO=null;setTab("portfolio",true);updatePlan();return;}
+    if(rb.id==="recUndo"){if(REC_UNDO){PF.items=REC_UNDO.items;PF.lastBuy=REC_UNDO.lb;REC_UNDO=null;pfChanged(true);}return;}
+    if(PF.lastBuy===monthKey()&&!REC_ARM){REC_ARM=true;updatePlan();return;}recordBuys();return;}const sb=ev.target.closest("[data-s]");if(sb){setTab("stocks",true);selectStock(sb.dataset.s,true);return;}const b=ev.target.closest("[data-t]");if(!b)return;setTab("market",true);select(b.dataset.t,true);});
 try{window.addEventListener("hashchange",()=>setTab(location.hash.slice(1),false));}catch(e){}
 render();renderDCA();initPlan();initPF();
 (function(){let h="";try{h=location.hash.slice(1);}catch(e){}setTab(h||"plan",false);})();
