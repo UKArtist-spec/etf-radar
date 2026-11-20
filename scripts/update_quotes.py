@@ -58,7 +58,7 @@ for it in items:
             w = close.resample("W-FRI").last().dropna()
             print("MA check", t, "m20w", round(float(w.iloc[-20:].mean()), 2),
                   "m50w", round(float(w.iloc[-50:].mean()), 2), "stored", it.get("m20"), it.get("m50"))
-        if d < it.get("d", "") or (d == it.get("d") and p == it.get("p")):
+        if d < it.get("d", ""):
             continue
         wk = close.resample("W-FRI").last().dropna()  # ChartRow's MAs are weekly
         yr = df[df.index > df.index[-1] - pd.DateOffset(years=1)]
