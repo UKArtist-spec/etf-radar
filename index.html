@@ -487,7 +487,11 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
     <div class="chips" id="planStyle" role="group" aria-label="เป้าหมายหลักของการลงทุน">
         <button data-s="auto" type="button">ให้ระบบจัดสมดุล</button><button data-s="div" type="button">รับปันผลสม่ำเสมอ</button><button data-s="tech" type="button">เทคโตแรง</button><button data-s="usa" type="button">เกาะตลาดสหรัฐ</button><button data-s="world" type="button">กระจายทั่วโลก</button>
       </div>
-    <label class="chk" for="planSat" style="font-size:14px;color:var(--ink)"><input type="checkbox" id="planSat"> เพิ่มหุ้นรายตัวเป็นส่วนเสริม (ระบบเลือกให้)</label>
+    <p class="qlabel">รูปแบบพอร์ต</p>
+    <div class="seg txt big" id="planPMode" role="group" aria-label="รูปแบบพอร์ต">
+      <button data-m="etf" type="button">ETF ล้วน</button><button data-m="hyb" type="button">ผสม</button><button data-m="stk" type="button">หุ้นล้วน</button>
+    </div>
+    <p class="note" id="pmodeDesc"></p>
     <p class="note" id="riskDesc"></p>
   </div>
 
@@ -969,7 +973,7 @@ const BK=[
 const RISK={cons:["ระมัดระวัง",100],mod:["ปานกลาง",110],agg:["เชิงรุก",120]};
 const SPLIT={cons:{core:60,growth:10,tech:5,theme:0,div:25},mod:{core:55,growth:20,tech:10,theme:5,div:10},agg:{core:45,growth:25,tech:15,theme:10,div:5}};
 const SAFE={bond:70,gold:30};
-const P={age:36,ret:60,amt:5000,inf:2,risk:"agg",tilt:true,tiltPts:5,on:{},etf:{},r:{},custom:null,hold:{},cash:5000,band:5,rbMode:"cash",mkP:"y1",mkDir:1,mkStr:30,mkTag:null,mkNote:"",tgRet:8,tgTag:null,auto:true,autoMk:true,style:"auto",sat:true,rs:8.5,goalMode:"pct",goalPct:10,goalAmt:5000000};
+const P={age:36,ret:60,amt:5000,inf:2,risk:"agg",tilt:true,tiltPts:5,on:{},etf:{},r:{},custom:null,pmode:"hyb",hold:{},cash:5000,band:5,rbMode:"cash",mkP:"y1",mkDir:1,mkStr:30,mkTag:null,mkNote:"",tgRet:8,tgTag:null,auto:true,autoMk:true,style:"auto",sat:true,rs:8.5,goalMode:"pct",goalPct:10,goalAmt:5000000};
 /* long-run return assumption per ETF, % per year: editable in the table, not a forecast */
 const ER={VOO:7,VTI:7,VT:6.5,VXUS:6,QQQ:8.5,QQQM:8.5,VUG:8,SCHG:8,VGT:9.5,XLK:9.5,SMH:11,SOXX:11,BOTZ:8,CIBR:9,ITA:8,SCHD:6.5,GLD:4,BND:3.5,VIG:6.5,SGOV:3,VEA:6,VWO:6.5,XLV:7};
 BK.forEach(b=>{P.on[b.k]=true;P.etf[b.k]=b.etfs[0];P.r[b.k]=b.r;P.hold[b.k]=0;});
@@ -985,7 +989,7 @@ function loadP(r){
       if(typeof r.mkTag==="string"&&typeof r.mkNote==="string"){P.mkTag=r.mkTag;P.mkNote=r.mkNote;}
       else if(typeof r.tgTag==="string"&&typeof r.mkNote==="string"){P.tgTag=r.tgTag;P.mkNote=r.mkNote;}}
     if(r.goalMode==="pct"||r.goalMode==="amt")P.goalMode=r.goalMode; if(typeof r.goalPct==="number"&&isFinite(r.goalPct))P.goalPct=Math.max(0,Math.min(40,r.goalPct)); if(typeof r.goalAmt==="number"&&isFinite(r.goalAmt)&&r.goalAmt>=0)P.goalAmt=r.goalAmt;
-    if(typeof r.sat==="boolean")P.sat=r.sat; if(typeof r.rs==="number"&&isFinite(r.rs))P.rs=Math.max(0,Math.min(20,r.rs));
+    if(typeof r.sat==="boolean")P.sat=r.sat; P.pmode=["etf","hyb","stk"].includes(r.pmode)?r.pmode:(P.sat?"hyb":"etf"); if(typeof r.rs==="number"&&isFinite(r.rs))P.rs=Math.max(0,Math.min(20,r.rs));
     if(typeof r.auto==="boolean")P.auto=r.auto; if(typeof r.autoMk==="boolean")P.autoMk=r.autoMk; if(["auto","div","tech","usa","world"].includes(r.style))P.style=r.style;
     if(typeof r.tgRet==="number"&&isFinite(r.tgRet))P.tgRet=Math.max(3,Math.min(12,r.tgRet));
     if(["m1","m3","ytd","y1","y5"].includes(r.mkP))P.mkP=r.mkP; if(r.mkDir===1||r.mkDir===-1)P.mkDir=r.mkDir;
@@ -1018,7 +1022,7 @@ function splitAt(age){const t=Object.assign({},SPLIT[P.risk]),d=GRULE.div[P.risk
 /* satellite of individual stocks: share of the whole plan, carved out of the growth side */
 let SAT_MODE=null; /* null = the user's plan; "etf" / "hyb" force a variant for the comparison */
 function withSat(m,fn){const o=SAT_MODE;SAT_MODE=m;try{return fn();}finally{SAT_MODE=o;}}
-function satAt(age){if(SAT_MODE==="etf")return 0;if(!(SAT_MODE==="hyb"||P.sat)||P.risk==="cons")return 0;return P.risk==="agg"?(age<45?20:age<55?15:age<60?10:5):(age<50?10:5);}
+function satAt(age){if(SAT_MODE==="etf")return 0;if(SAT_MODE==="stk"||(SAT_MODE==null&&P.pmode==="stk"))return 100;if(!(SAT_MODE==="hyb"||P.sat)||P.risk==="cons")return 0;return P.risk==="agg"?(age<45?20:age<55?15:age<60?10:5):(age<50?10:5);}
 const capn=(v,lo,hi)=>v==null||!isFinite(v)?0.5:clamp((v-lo)/(hi-lo),0,1);
 const mcapB=t=>t?parseFloat(t)*(/T$/.test(t)?1000:1):null;
 const SWT={cons:[35,20,20,20,5],mod:[35,20,20,20,5],agg:[25,35,20,10,10]}; /* quality, growth, valuation, stability, size */
@@ -1026,12 +1030,12 @@ function scoreStocks(){const w=SWT[P.risk];return ST.map(e=>{
     const q=(capn(e.nm,0,50)+capn(e.roe,0,60)+(1-capn(e.de,0,1.5)))/3,g=(capn(e.rev5,0,30)+capn(e.eps5,0,40))/2,v=((1-capn(e.fpe,10,45))+capn(e.fcfy,-2,5))/2,st=1-capn(e.beta,0.2,2.2),z=capn(Math.log(mcapB(e.mcap)||500),Math.log(500),Math.log(5000));
     return{e:e,ok:isFinite(e.nm)&&e.nm>0&&isFinite(e.fpe)&&e.fpe>0,score:w[0]*q+w[1]*g+w[2]*v+w[3]*st+w[4]*z};}).sort((a,b)=>(b.ok-a.ok)||b.score-a.score);}
 function pickStocks(n){const out=[],per={};let hot=false;if(n<=0)return out;for(const r of scoreStocks()){if(!r.ok||r.e.hot||(per[r.e.sector]||0)>=2)continue;if(P.risk!=="agg"&&r.e.beta>1.6)continue;if(r.e.beta>2){if(hot)continue;hot=true;}out.push(r);per[r.e.sector]=(per[r.e.sector]||0)+1;if(out.length>=n)break;}return out;}
-const satCount=s=>s>=20?5:s>=15?4:s>=10?3:s>0?2:0;
+const satCount=s=>s>=100?(P.risk==="agg"?10:8):s>=20?5:s>=15?4:s>=10?3:s>0?2:0;
 function pretAll(w,age){const s=satAt(age);return((100-s)*pret(w)+s*P.rs)/100;}
 function longRet(e){if(e.cg[4]!=null)return e.cg[4];if(e.t==="QQQM")return E.find(x=>x.t==="QQQ").cg[4]+0.03;return e.cg[3]||0;}
 function weightsAt(age,add){const keysAt=s=>BK.filter(b=>b.s===s&&isOn(b.k,age)).map(b=>b.k);
   const g=keysAt("g"),s=keysAt("s"),w={};let eq=Math.min(98,eqBase(age)+add);
-  const sat_=satAt(age);if(sat_>0)eq=clamp((eq-sat_)/(100-sat_)*100,0,98);
+  const sat_=satAt(age);if(sat_>0&&sat_<100)eq=clamp((eq-sat_)/(100-sat_)*100,0,98);
   if(!s.length)eq=100; if(!g.length)eq=0;
   const share=(keys,tab,tot)=>{const sum=keys.reduce((a,k)=>a+(tab[k]||0),0);keys.forEach(k=>{w[k]=tot*(sum?(tab[k]||0)/sum:1/keys.length);});};
   share(g,splitAt(age),eq);share(s,SAFE,100-eq);return w;}
@@ -1092,8 +1096,10 @@ function updatePlan(){
   const offs=BK.filter(b=>!P.on[b.k]).map(b=>{const r=GRULE[b.k][P.risk];
     return b.n+(!P.auto?"":P.style==="div"&&b.k==="theme"?" (ไม่ใช้กับเป้าหมายรับปันผล)":!r?" (ไม่ใช้ในระดับ"+RISK[P.risk][0]+")":P.age<r[0]?" (เริ่มที่อายุ "+r[0]+")":" (ใช้ถึงอายุ "+r[1]+")");});
   $("planPick").textContent=(P.auto?"อายุ "+P.age+" ระดับ"+RISK[P.risk][0]+" ระบบเลือกกลุ่ม: ":"คุณเลือกกลุ่มเอง: ")+BK.filter(b=>P.on[b.k]).map(b=>b.n).join(", ")+
-    (offs.length?" · ยังไม่ใส่: "+offs.join(", "):"")+(P.sat&&satAt(P.age)===0&&P.risk==="cons"?" · ระดับความเสี่ยงน้อยไม่มีหุ้นรายตัว":satAt(P.age)>0?" · หุ้นรายตัว "+satAt(P.age)+"% ของพอร์ต "+satCount(satAt(P.age))+" ตัว คัดจากคุณภาพธุรกิจ การเติบโต ความถูกแพง และความผันผวน":"")+" · ETF ของแต่ละกลุ่มคัดจากคะแนน 5 ด้าน: ค่าธรรมเนียม ขนาดกอง อายุกอง การกระจายตัว และผลตอบแทน 10 ปี (ดูคะแนนได้ด้านล่าง)";
+    (offs.length?" · ยังไม่ใส่: "+offs.join(", "):"")+(P.pmode==="stk"?" · แผนหุ้นล้วน "+satCount(100)+" ตัว น้ำหนักเท่ากัน คัดจากคุณภาพธุรกิจ การเติบโต ความถูกแพง และความผันผวน ไม่เกิน 2 ตัวต่อกลุ่มธุรกิจ":P.sat&&satAt(P.age)===0&&P.risk==="cons"?" · ระดับความเสี่ยงน้อยไม่มีหุ้นรายตัว":satAt(P.age)>0?" · หุ้นรายตัว "+satAt(P.age)+"% ของพอร์ต "+satCount(satAt(P.age))+" ตัว คัดจากคุณภาพธุรกิจ การเติบโต ความถูกแพง และความผันผวน":"")+" · ETF ของแต่ละกลุ่มคัดจากคะแนน 5 ด้าน: ค่าธรรมเนียม ขนาดกอง อายุกอง การกระจายตัว และผลตอบแทน 10 ปี (ดูคะแนนได้ด้านล่าง)";
   [...$("planStyle").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===P.style));
+  [...$("planPMode").children].forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===P.pmode));
+  $("pmodeDesc").textContent=PMODE[P.pmode]+(P.pmode==="hyb"&&P.risk==="cons"?" · ระดับความเสี่ยงน้อยไม่มีหุ้นรายตัว แผนจึงเท่ากับ ETF ล้วน":P.pmode==="stk"&&P.risk!=="agg"?" · ระดับความเสี่ยงของคุณ ระบบตัดหุ้นที่ผันผวนแรงออกให้":"");
   $("scoreBody").innerHTML=BK.filter(b=>P.on[b.k]).map(b=>{const rows=b.etfs.length>1?scoreGroup(b):[{e:E.find(x=>x.t===b.etfs[0]),age:+LATEST.slice(0,4)-(+E.find(x=>x.t===b.etfs[0]).inc),ok:true,score:null}];
     return rows.map((r,i)=>{const e=r.e,pick=e.t===P.etf[b.k],l=e.cg[4]!=null?pct(e.cg[4],1):e.t==="QQQM"?"ใช้ของ QQQ":"—";
       return '<tr><td class="l">'+(i?"":'<span class="dot" style="background:var('+b.c+')"></span>'+b.n)+'</td><td class="l"><span class="tk">'+e.t+'</span></td><td class="num">'+e.er.toFixed(2)+'%</td><td class="num">'+(e.aum?"$"+e.aum:"—")+'</td><td class="num">'+r.age+' ปี</td><td class="num">'+l+'</td><td class="num">'+(e.t10==null?"—":e.t10+"%")+'</td><td class="num">'+(r.score==null?"—":r.score.toFixed(0))+'</td><td class="l">'+(pick?'<span class="tag g">เลือก</span>':!r.ok?'<span class="tag r">ไม่ผ่านเกณฑ์</span>':"")+'</td></tr>';}).join("");}).join("");
@@ -1106,7 +1112,8 @@ function updatePlan(){
   $("riskDesc").textContent={cons:"ระมัดระวัง: รับการขาดทุนชั่วคราวได้น้อย เน้นรักษาเงินต้น ผลตอบแทนคาดหวังต่ำกว่า",mod:"ปานกลาง: รับความผันผวนได้พอสมควร ยอมให้มูลค่าลดลงชั่วคราวราว 20–30% ได้",agg:"เชิงรุก: ยอมให้มูลค่าลดลงชั่วคราว 30–50% ได้โดยไม่ขายทิ้ง เพื่อผลตอบแทนระยะยาวที่สูงกว่า"}[P.risk]+" · "+{auto:"ให้ระบบจัดสมดุล: ระบบเลือกกลุ่มตามอายุและความเสี่ยงโดยไม่เน้นด้านใดเป็นพิเศษ",div:"รับปันผลสม่ำเสมอ: ใส่กลุ่มปันผลตั้งแต่ตอนนี้และเพิ่มน้ำหนัก ไม่ใช้กลุ่มธีม",tech:"เทคโตแรง: เพิ่มน้ำหนัก Growth และเทคโนโลยี ผันผวนมากขึ้น",usa:"เกาะตลาดสหรัฐ: แกนหลักของพอร์ตใช้ ETF หุ้นสหรัฐ",world:"กระจายทั่วโลก: แกนหลักของพอร์ตใช้ ETF หุ้นทั่วโลก ไม่ต้องเลือกประเทศเอง"}[P.style];
   const sat=satAt(P.age),stk=sat>0?pickStocks(satCount(sat)):[],satAmt=stk.length?P.amt*sat/100:0,cs=cashSplit(t,P.amt-satAmt),buys=BK.filter(b=>P.on[b.k]&&Math.round(cs.tr[b.k]||0)>0);
   $("planDo").innerHTML='<div class="doh"><h2>เดือนนี้ซื้ออะไร เท่าไร</h2><b class="money">'+baht(P.amt)+' บาท</b></div>'+
-    (buys.length?buys.map(b=>{const e=E.find(x=>x.t===P.etf[b.k]);return '<button class="buyrow" type="button" data-t="'+e.t+'" aria-label="ดูรายละเอียด '+e.t+'"><span class="dot" style="background:var('+b.c+')"></span><span><b class="tk">'+e.t+'</b><span class="nm">'+b.n+' · '+esc(e.th)+'</span></span><span class="amt"><b class="money">'+baht(cs.tr[b.k])+' บาท</b><span>'+(P.amt?Math.round(cs.tr[b.k]/P.amt*100):0)+'%</span></span></button>';}).join("")+stk.map(r=>'<button class="buyrow" type="button" data-s="'+r.e.t+'" aria-label="ดูรายละเอียด '+r.e.t+'"><span class="dot" style="background:var(--c8)"></span><span><b class="tk">'+r.e.t+'</b><span class="nm">หุ้นรายตัว · '+esc(r.e.n)+' · คะแนน '+r.score.toFixed(0)+'</span></span><span class="amt"><b class="money">'+baht(satAmt/stk.length)+' บาท</b><span>'+(sat/stk.length).toFixed(0)+'%</span></span></button>').join(""):'<p class="muted" style="padding:10px 0">ใส่จำนวนเงินที่จะลงทุนต่อเดือนก่อน</p>')+
+    (buys.length||(stk.length&&P.amt>0)?buys.map(b=>{const e=E.find(x=>x.t===P.etf[b.k]);return '<button class="buyrow" type="button" data-t="'+e.t+'" aria-label="ดูรายละเอียด '+e.t+'"><span class="dot" style="background:var('+b.c+')"></span><span><b class="tk">'+e.t+'</b><span class="nm">'+b.n+' · '+esc(e.th)+'</span></span><span class="amt"><b class="money">'+baht(cs.tr[b.k])+' บาท</b><span>'+(P.amt?Math.round(cs.tr[b.k]/P.amt*100):0)+'%</span></span></button>';}).join("")+stk.map(r=>'<button class="buyrow" type="button" data-s="'+r.e.t+'" aria-label="ดูรายละเอียด '+r.e.t+'"><span class="dot" style="background:var(--c8)"></span><span><b class="tk">'+r.e.t+'</b><span class="nm">หุ้นรายตัว · '+esc(r.e.n)+' · คะแนน '+r.score.toFixed(0)+'</span></span><span class="amt"><b class="money">'+baht(satAmt/stk.length)+' บาท</b><span>'+(sat/stk.length).toFixed(0)+'%</span></span></button>').join(""):'<p class="muted" style="padding:10px 0">ใส่จำนวนเงินที่จะลงทุนต่อเดือนก่อน</p>')+
+    (P.pmode==="stk"&&stk.length?'<p class="dohint">แผนหุ้นล้วน: แบ่งเงินเท่ากันทุกตัว ไม่มีสินทรัพย์ปลอดภัย มูลค่าอาจลดลงชั่วคราว 40–60% ในช่วงตลาดแย่ ควรมีเงินสำรองฉุกเฉินแยกไว้ก่อน</p>':'')+
     (stk.length&&buys.length?'<p class="dohint">หุ้นรายตัวรวม '+sat+'% ของเงินลงทุน เป็นส่วนเสริมที่เสี่ยงกว่า ETF ระบบลดสัดส่วนนี้ลงเมื่ออายุมากขึ้น และปิดได้ที่ตัวเลือกด้านบน</p>':'')+
     '<p class="dohint">'+(cs.tot>0?"ระบบเฉลี่ยเงินเดือนนี้ไปกลุ่มที่ต่ำกว่าเป้า ตามมูลค่าพอร์ต "+baht(cs.tot)+" บาทของ ETF ที่บันทึกไว้ในแท็บพอร์ต":"กดที่แต่ละแถวเพื่อดูข้อมูลกอง เมื่อเริ่มมีพอร์ตแล้ว บันทึกสิ่งที่ถืออยู่ในแท็บพอร์ต ระบบจะเฉลี่ยเงินแต่ละเดือนไปกลุ่มที่ต่ำกว่าเป้าให้เอง")+'</p>';
   const act=BK.filter(b=>P.on[b.k]&&t[b.k]>0);
@@ -1121,9 +1128,9 @@ function updatePlan(){
   $("planAmt2").textContent=baht(P.amt)+" บาท";
   if(!sum){$("planOut").innerHTML='<div class="hero"><span>ยังคำนวณไม่ได้</span><em>ตั้งสัดส่วนเป้าอย่างน้อยหนึ่งกลุ่ม</em></div>';}
   else if(yrs<=0){$("planOut").innerHTML='<div class="hero"><span>ยังคำนวณไม่ได้</span><em>อายุเกษียณต้องมากกว่าอายุปัจจุบัน</em></div>';}
-  else{const mid=project(0),lo=project(-2),hi=project(2),real=mid.v/Math.pow(1+P.inf/100,yrs);
+  else{const dd=P.pmode==="stk"?4:2,mid=project(0),lo=project(-dd),hi=project(dd),real=mid.v/Math.pow(1+P.inf/100,yrs);
     $("planOut").innerHTML=
-     '<div class="hero"><span>มูลค่าโดยประมาณตอนอายุ '+P.ret+'</span><b class="money">'+baht(mid.v)+' บาท</b><em class="money">อยู่ในช่วง '+baht(lo.v)+' ถึง '+baht(hi.v)+' บาท ถ้าผลตอบแทนต่ำหรือสูงกว่าที่คาด 2 จุดต่อปี</em></div>'+
+     '<div class="hero"><span>มูลค่าโดยประมาณตอนอายุ '+P.ret+'</span><b class="money">'+baht(mid.v)+' บาท</b><em class="money">อยู่ในช่วง '+baht(lo.v)+' ถึง '+baht(hi.v)+' บาท ถ้าผลตอบแทนต่ำหรือสูงกว่าที่คาด '+dd+' จุดต่อปี</em></div>'+
      '<div class="stats"><div><span>เงินต้นที่ใส่รวม '+yrs+' ปี</span><b class="money">'+baht(mid.c)+' บาท</b></div>'+
      '<div><span>คิดเป็นค่าเงินวันนี้</span><b class="money">'+baht(real)+' บาท</b></div>'+
      '<div><span>ผลตอบแทนที่ใช้คำนวณ</span><b>'+pretAll(t,P.age).toFixed(2)+'% ต่อปี</b></div></div>'+
@@ -1213,7 +1220,7 @@ $("mkGo").addEventListener("click",marketCalc);
 function readPlanInputs(){
   P.age=clamp(Math.round(numv($("planAge"),P.age)),18,90);
   P.ret=clamp(Math.round(numv($("planRet"),P.ret)),19,95);
-  const amt0=P.amt;P.amt=Math.max(0,numv($("planAmt"),0));P.autoMk=$("autoMk").checked;P.sat=$("planSat").checked;P.rs=clamp(numv($("planRs"),8.5),0,20);
+  const amt0=P.amt;P.amt=Math.max(0,numv($("planAmt"),0));P.autoMk=$("autoMk").checked;P.rs=clamp(numv($("planRs"),8.5),0,20);
   P.inf=clamp(numv($("planInf"),0),0,15);
   P.tiltPts=clamp(Math.round(numv($("planTiltPts"),0)),0,10);
   if(P.amt!==amt0)$("rbCash").value=P.amt;
@@ -1224,7 +1231,11 @@ function readPlanInputs(){
     if(before!==JSON.stringify(P.on)){if(P.mkTag||P.tgTag){P.custom=null;P.mkTag=null;P.tgTag=null;}savePlan();renderPlanTable();return;}}
   savePlan();updatePlan();
 }
-["planAge","planRet","planAmt","planInf","planTiltPts","rbCash","rbBand","planTilt","autoMk","planSat","planRs"].forEach(id=>$(id).addEventListener("input",readPlanInputs));
+["planAge","planRet","planAmt","planInf","planTiltPts","rbCash","rbBand","planTilt","autoMk","planRs"].forEach(id=>$(id).addEventListener("input",readPlanInputs));
+const PMODE={etf:"ETF ล้วน: กระจายความเสี่ยงดีที่สุด ระบบลดความเสี่ยงให้ตามอายุ เหมาะเป็นแกนของเงินเกษียณ",
+  hyb:"ผสม: ETF เป็นแกน และหุ้นรายตัวที่ระบบคัดให้ 5–20% ของเงินลงทุน ลดสัดส่วนหุ้นลงเมื่ออายุมากขึ้น",
+  stk:"หุ้นล้วน: ซื้อหุ้นรายตัวที่ระบบคัดให้ น้ำหนักเท่ากันทุกตัว ไม่มีตราสารหนี้หรือทองช่วยพยุง และไม่ลดความเสี่ยงตามอายุ ผันผวนสูงที่สุดในสามแบบ"};
+$("planPMode").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.pmode=b.dataset.m;P.sat=P.pmode==="hyb";savePlan();updatePlan();});
 $("planRisk").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.risk=b.dataset.r;P.custom=null;P.mkTag=null;P.tgTag=null;applyAuto();pickEtfs();savePlan();renderPlanTable();});
 $("planStyle").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.style=b.dataset.s;P.custom=null;P.mkTag=null;P.tgTag=null;P.auto=true;applyAuto();pickEtfs();savePlan();renderPlanTable();});
 $("planReset").addEventListener("click",()=>{P.custom=null;P.mkTag=null;P.tgTag=null;P.auto=true;applyAuto();pickEtfs();savePlan();renderPlanTable();});
@@ -1237,7 +1248,7 @@ $("planBody").addEventListener("input",ev=>{const el=ev.target,id=el.id||"",k=id
 $("planBody").addEventListener("change",ev=>{const el=ev.target,id=el.id||"",k=id.slice(2);
   if(id.indexOf("g-")===0){P.auto=false;P.on[k]=el.checked;if(P.custom){if(el.checked)P.custom[k]=0;else delete P.custom[k];P.mkTag=null;P.tgTag=null;}savePlan();renderPlanTable();}
   else if(id.indexOf("e-")===0){P.etf[k]=el.value;savePlan();updatePlan();}});
-function initPlan(){$("planAge").value=P.age;$("planRet").value=P.ret;$("planAmt").value=P.amt;$("planInf").value=P.inf;$("planTiltPts").value=P.tiltPts;$("rbCash").value=P.cash;$("rbBand").value=P.band;$("planTilt").checked=P.tilt;$("mkStr").value=P.mkStr;$("tgRet").value=P.tgRet;$("autoMk").checked=P.autoMk;$("planSat").checked=P.sat;$("planRs").value=P.rs;applyAuto();pickEtfs();renderPlanTable();}
+function initPlan(){$("planAge").value=P.age;$("planRet").value=P.ret;$("planAmt").value=P.amt;$("planInf").value=P.inf;$("planTiltPts").value=P.tiltPts;$("rbCash").value=P.cash;$("rbBand").value=P.band;$("planTilt").checked=P.tilt;$("mkStr").value=P.mkStr;$("tgRet").value=P.tgRet;$("autoMk").checked=P.autoMk;$("planRs").value=P.rs;applyAuto();pickEtfs();renderPlanTable();}
 
 function render(){const r=rows();renderControls();renderSummary(r);renderTable(r);renderRank(r);renderDetail();if(typeof renderStocks==="function"&&typeof P!=="undefined")renderStocks();}
 function select(t,scroll){S.sel=t;render();if(scroll){const m=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;$("detail").scrollIntoView({block:"nearest",behavior:m?"auto":"smooth"});}}
@@ -1456,12 +1467,13 @@ const OSTEPS=[
    ["tech","เทคโตแรง","เน้นหุ้นเทคโนโลยีและการเติบโต ผันผวนมากขึ้น"],
    ["usa","เกาะตลาดสหรัฐ","แกนพอร์ตเป็นหุ้นใหญ่สหรัฐ"],
    ["world","กระจายทั่วโลก","ไม่อยากเลือกประเทศเอง กระจายไปทุกภูมิภาค"]]},
- {k:"sat",q:"อยากให้ระบบเลือกหุ้นรายตัวมาเสริมพอร์ตด้วยไหม",hint:"หุ้นรายตัวผันผวนกว่า ETF ระบบจะใช้แค่ส่วนน้อยของเงินลงทุน และลดลงเมื่ออายุมากขึ้น",type:"pick",skip:a=>a.risk==="cons",opts:[
+ {k:"sat",q:"อยากได้พอร์ตแบบไหน",hint:"ไม่แน่ใจ ให้เลือก ETF ล้วนหรือผสม หุ้นล้วนผันผวนที่สุด",type:"pick",skip:a=>a.risk==="cons",opts:[
    ["no","ไม่ต้อง ใช้ ETF อย่างเดียว","เรียบง่าย กระจายความเสี่ยงดีที่สุด"],
-   ["yes","เอา ให้ระบบเลือกหุ้นมาเสริม","ราว 10–20% ของเงินลงทุน ตามอายุและความเสี่ยง"]]}];
+   ["yes","ผสม ETF กับหุ้นรายตัว","ระบบเลือกหุ้นมาเสริมราว 5–20% ตามอายุและความเสี่ยง"],
+   ["stk","หุ้นรายตัวล้วน","ระบบคัดหุ้น 8–10 ตัว ผันผวนสูง ไม่มีสินทรัพย์ปลอดภัย"]]}];
 const oSteps=()=>OSTEPS.filter(s=>!(s.skip&&s.skip(OB.a)));
 function showOnboarding(fromUser){
-  OB.i=0;OB.a=fromUser?{age:P.age,ret:P.ret,amt:P.amt,risk:P.risk,style:P.style,sat:P.sat?"yes":"no"}:{};
+  OB.i=0;OB.a=fromUser?{age:P.age,ret:P.ret,amt:P.amt,risk:P.risk,style:P.style,sat:P.pmode==="stk"?"stk":P.sat?"yes":"no"}:{};
   OB.edit=!!fromUser;$("oOut").textContent=OB.edit?"ยกเลิก ใช้แผนเดิม":"ยังไม่ตอบตอนนี้ ออกจากระบบ";
   $("onb").hidden=false;renderOnb();}
 function oMsg(t){const m=$("oMsg");m.hidden=!t;m.textContent=t||"";}
@@ -1482,7 +1494,7 @@ function oRead(){const s=oSteps()[OB.i];
     OB.a[s.k]=s.k==="amt"?Math.round(v):Math.round(v);return true;}
   if(OB.a[s.k]==null){oMsg("เลือกหนึ่งข้อก่อน");return false;}return true;}
 function finishOnb(){const a=OB.a;
-  P.age=a.age;P.ret=a.ret;P.amt=a.amt;P.risk=a.risk;P.style=a.style||"auto";P.sat=a.risk!=="cons"&&a.sat==="yes";
+  P.age=a.age;P.ret=a.ret;P.amt=a.amt;P.risk=a.risk;P.style=a.style||"auto";P.sat=a.risk!=="cons"&&a.sat==="yes";P.pmode=a.sat==="stk"?"stk":P.sat?"hyb":"etf";
   P.custom=null;P.mkTag=null;P.tgTag=null;P.auto=true;P.cash=a.amt;
   $("onb").hidden=true;initPlan();savePlan();updatePlan();setTab("plan",true);try{window.scrollTo(0,0);}catch(e){}}
 $("oBody").addEventListener("click",ev=>{const c=ev.target.closest(".ochoice");if(c){const s=oSteps()[OB.i];OB.a[s.k]=c.dataset.v;
@@ -1520,7 +1532,7 @@ function renderCompare(){
   const ps=portfolioSet(),start=ps[0].start,fm=v=>v>=1e6?(v/1e6).toFixed(2)+" ล้าน":baht(v);
   const G=isPct?fvConst(P.goalPct,P.amt,yrs,start):P.goalAmt,capV=fvConst(40,P.amt,yrs,start);
   const req=isPct?P.goalPct:(G<=fvConst(-10,P.amt,yrs,start)?-10:G>capV?41:solveUp(r=>fvConst(r,P.amt,yrs,start),-10,40,G));
-  const hit=ps.find(p=>p.mid>=G*0.999),best=ps[1].sat>0?ps[1]:ps[0],cur=satAt(P.age)>0?"hyb":"etf";
+  const hit=ps.find(p=>p.mid>=G*0.999),best=ps[1].sat>0?ps[1]:ps[0],cur=P.pmode==="stk"?"stk":satAt(P.age)>0?"hyb":"etf";
   let pick,msg;const goalTxt=isPct?"ผลตอบแทน "+P.goalPct+"% ต่อปี":"เงิน "+fm(G)+" บาทตอนอายุ "+P.ret+" (ต้องได้ผลตอบแทนเฉลี่ย "+(req>40?"เกิน 40":req.toFixed(1))+"% ต่อปี)";
   const wayOut=()=>{const need=solveUp(a=>fvConst(best.eff,a,yrs,start),0,P.amt*100+1e7,G);let ex=0;for(let y=1;y<=30;y++){if(fvConst(best.eff,P.amt,yrs+y,start)>=G){ex=y;break;}}
     return " ถ้าจะถึงเป้าด้วยพอร์ต "+best.name+": ลงทุนเดือนละราว "+baht(Math.ceil(need/100)*100)+" บาท (จากเดิม "+baht(P.amt)+")"+(ex?" หรือลงทุนต่ออีก "+ex+" ปี":" หรือลงทุนนานขึ้นเกิน 30 ปี");};
@@ -1544,7 +1556,7 @@ function renderCompare(){
 }
 $("goalMode").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;P.goalMode=b.dataset.g;savePlan();renderCompare();});
 $("goalVal").addEventListener("input",ev=>{const v=parseFloat(ev.target.value);if(!isFinite(v)||v<0)return;if(P.goalMode==="pct")P.goalPct=Math.min(40,v);else P.goalAmt=v;savePlan();renderCompare();});
-$("cmpApply").addEventListener("click",ev=>{const k=ev.currentTarget.dataset.k;P.sat=k==="hyb";$("planSat").checked=P.sat;savePlan();updatePlan();});
+$("cmpApply").addEventListener("click",ev=>{const k=ev.currentTarget.dataset.k;P.pmode=k;P.sat=k==="hyb";savePlan();updatePlan();});
 /* ===== STOCK MARKET TAB ===== */
 const SS={sel:"NVDA",sortKey:"period",sortDir:-1};
 /* ===== stock analysis (rule-based) + headlines from news.json ===== */
