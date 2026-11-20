@@ -16,6 +16,8 @@ jobs:
           python-version: "3.12"
       - run: pip install -q yfinance pandas
       - run: python scripts/update_quotes.py
+        env:
+          CHECK_MA: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
       - name: Commit if changed
         run: |
           git diff --quiet quotes.json && { echo "No change"; exit 0; }

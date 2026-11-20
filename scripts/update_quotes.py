@@ -3,7 +3,7 @@
 Updates only price-driven fields (d, p, pr, tr, lo, hi, m20, m50, cg) and the
 USD/THB rate. Fund facts (er, aum, holdings) and stock fundamentals are kept.
 """
-import json, sys, datetime as dt
+import json, os, sys, datetime as dt
 import pandas as pd, yfinance as yf
 
 PATH = "quotes.json"
@@ -54,14 +54,19 @@ for it in items:
         p, d = round(float(close.iloc[-1]), 2), close.index[-1].strftime("%Y-%m-%d")
         if it.get("p") and abs(p / it["p"] - 1) > 0.4:
             skipped.append(f"{t}: price jump {it['p']}->{p}"); continue
+        if os.environ.get("CHECK_MA") and t in ("QQQ", "SMH", "AAPL", "MSFT"):
+            w = close.resample("W-FRI").last().dropna()
+            print("MA check", t, "m20w", round(float(w.iloc[-20:].mean()), 2),
+                  "m50w", round(float(w.iloc[-50:].mean()), 2), "stored", it.get("m20"), it.get("m50"))
         if d < it.get("d", "") or (d == it.get("d") and p == it.get("p")):
             continue
+        wk = close.resample("W-FRI").last().dropna()  # ChartRow's MAs are weekly
         yr = df[df.index > df.index[-1] - pd.DateOffset(years=1)]
         it.update(d=d, p=p, pr=returns(close, p),
                   lo=round(float(yr["Low"].min()), 2), hi=round(float(yr["High"].max()), 2),
-                  m50=round(float(close.iloc[-50:].mean()), 2), fetchedAt=now, src="yahoo")
+                  m50=round(float(wk.iloc[-50:].mean()), 2), fetchedAt=now, src="yahoo")
         if it.get("k") != "stk":
-            it.update(tr=returns(adj, p), m20=round(float(close.iloc[-20:].mean()), 2),
+            it.update(tr=returns(adj, p), m20=round(float(wk.iloc[-20:].mean()), 2),
                       cg=[cagr(adj, y) for y in (1, 2, 3, 5, 10, 15)])
         updated += 1
     except Exception as e:
