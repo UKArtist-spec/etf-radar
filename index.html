@@ -667,6 +667,14 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
     </details>
   </div>
 
+  <div class="panel box" id="ovBox" hidden>
+    <h2>ตรวจหุ้นซ้ำข้ามกอง</h2>
+    <p class="verdict" id="ovVerdict" aria-live="polite"></p>
+    <div id="ovList" class="hold"></div>
+    <div id="ovPairs"></div>
+    <p class="note">คิดจากหุ้นใหญ่ 10 อันดับแรกของแต่ละกองและหุ้นรายตัวที่ถือ ไม่ใช่ทั้งกอง ตัวเลขจริงจึงสูงกว่านี้ ไม่รวมตราสารหนี้และทอง</p>
+  </div>
+
   <div class="panel box" id="divBox">
     <h2>ปันผลที่ได้รับ</h2>
     <p class="muted" style="font-size:13.5px" id="divSum"></p>
@@ -1332,6 +1340,7 @@ function applyQuote(q){if(!q)return false;const e=E.find(x=>x.t===q.t);if(!e)ret
   if(num(c.m20))e.m20=c.m20;if(num(c.m50))e.m50=c.m50;if(num(c.er))e.er=c.er;if(num(c.y))e.y=c.y;
   if(typeof c.aum==="string"&&/^[\d.]+[TBM]$/.test(c.aum))e.aum=c.aum;
   if(Array.isArray(c.cg)&&c.cg.length===6)e.cg=c.cg.map(v=>num(v)?v:null);
+  if(Array.isArray(c.h)&&c.h.length)e.h=c.h.filter(x=>x&&typeof x.s==="string"&&num(x.w)&&x.w>0).map(x=>[x.s,x.w]);
   if(num(c.hc))e.hc=c.hc;if(num(c.t10))e.t10=c.t10;
   const tp=pairs(c.top),sc=pairs(c.sec);if(tp)e.top=tp;if(sc)e.sec=sc;
   return true;}
@@ -1423,6 +1432,23 @@ function xirrCalc(){const by={};PF.items.forEach(it=>{if(isAuto(it)&&it.uc>0)(by
   if(flo*fhi<0){for(let i=0;i<100;i++){const m=(lo+hi)/2,fm=f(m);if(flo*fm<=0){hi=m;}else{lo=m;flo=fm;}}r=(lo+hi)/2;}
   return{n:used,all:all,span:span,r:r};}
 const divNet=()=>PF.divs.reduce((a,d)=>a+d.a,0);
+const OVA={GOOG:"GOOGL",ABBN:"ABB"},ovSym=s=>OVA[s]||s;
+function renderOverlap(){const box=$("ovBox");if(!box)return;
+  const its=PF.items.filter(isAuto).map(it=>({it:it,v:itemVal(it),e:(it.k==="etf"?E:ST).find(x=>x.t===it.t)})).filter(x=>x.v>0);
+  const den=its.reduce((a,x)=>a+x.v,0),etfs=its.filter(x=>x.it.k==="etf"&&x.e.h&&x.e.h.length);
+  if(!den||!etfs.length){box.hidden=true;return;}
+  box.hidden=false;const ex={};
+  its.forEach(x=>{if(x.it.k==="stk"){const s=ovSym(x.it.t);ex[s]=(ex[s]||0)+x.v;}else if(x.e.h)x.e.h.forEach(p=>{const s=ovSym(p[0]);ex[s]=(ex[s]||0)+x.v*p[1]/100;});});
+  const top=Object.keys(ex).map(s=>[s,ex[s]/den*100]).sort((a,b)=>b[1]-a[1]).slice(0,5),mx=top[0][1];
+  const hi=top.filter(x=>x[1]>=10);
+  $("ovVerdict").textContent=hi.length?hi.map(x=>x[0]+" "+x[1].toFixed(1)+"%").join(", ")+" ของพอร์ตหุ้น/ETF ผ่านหลายกองรวมกัน ถ้าตัวนี้ตก พอร์ตจะกระทบแรง":"ไม่มีหุ้นตัวเดียวที่เกิน 10% ของพอร์ต เมื่อรวมทุกกองแล้ว";
+  $("ovList").innerHTML=top.map(x=>'<div><span>'+esc(x[0])+'</span><span><em style="width:'+(x[1]/mx*100).toFixed(0)+'%;background:var(--'+(x[1]>=10?"warn":"accent")+')"></em></span><b>'+x[1].toFixed(1)+'%</b></div>').join("");
+  const pairs=[];for(let i=0;i<etfs.length;i++)for(let j=i+1;j<etfs.length;j++){const a=etfs[i].e,b=etfs[j].e;if(a.t===b.t)continue;
+    const mb={};b.h.forEach(p=>{mb[ovSym(p[0])]=(mb[ovSym(p[0])]||0)+p[1];});const sh=[];let ov=0;
+    a.h.forEach(p=>{const s=ovSym(p[0]);if(mb[s]){sh.push(s);ov+=Math.min(p[1],mb[s]);}});
+    if(sh.length>=2)pairs.push({a:a.t,b:b.t,sh:[...new Set(sh)],ov:ov});}
+  pairs.sort((p,q)=>q.ov-p.ov);
+  $("ovPairs").innerHTML=pairs.length?'<h3 style="margin-top:6px">กองที่ถือหุ้นซ้ำกัน</h3>'+pairs.slice(0,4).map(p=>'<p class="note" style="margin-top:6px"><b class="tk">'+p.a+' + '+p.b+'</b> ซ้ำกัน '+p.sh.length+' ตัวใน 10 อันดับแรก ('+esc(p.sh.slice(0,5).join(", "))+')</p>').join(""):"";}
 function renderDivs(){if(!$("divList"))return;
   const ts=[...new Set(PF.items.filter(isAuto).map(i=>i.t).concat(PF.divs.map(d=>d.t)))];
   const cur=$("dvT").value;$("dvT").innerHTML=ts.length?ts.map(t=>'<option value="'+t+'">'+t+'</option>').join(""):'<option value="">เพิ่ม ETF ในพอร์ตก่อน</option>';if(ts.includes(cur))$("dvT").value=cur;
@@ -1460,7 +1486,7 @@ function updatePF(){
   $("pfSub").textContent=PF.items.length+" รายการ · 1 ดอลลาร์ = "+PF.fx.toFixed(2)+" บาท · ราคา ETF ณ "+thDate(LATEST);
   PF.items.forEach(it=>{const a=$("iv-"+it.id),b=$("is-"+it.id);if(!a)return;const v=itemVal(it),pl=itemPL(it);a.textContent=baht(v)+" บาท";
     b.textContent=(tot?(v/tot*100).toFixed(1):"0.0")+"%"+(isAuto(it)?" · $"+itemPx(it).toFixed(2):"")+(pl?" · "+pct(pl.pl/pl.cost*100,1):"");});
-  renderPnl();renderDivs();
+  renderPnl();renderDivs();renderOverlap();
   const C=2*Math.PI*40;let off=0;
   $("pfDonut").innerHTML='<svg viewBox="0 0 100 100" role="img" aria-label="สัดส่วนสินทรัพย์"><circle cx="50" cy="50" r="40" fill="none" stroke="var(--sunk)" stroke-width="13"/>'+
     (tot?CLS.map(c=>{const f=ct[c.k]/tot;if(f<=0)return"";const seg='<circle cx="50" cy="50" r="40" fill="none" stroke="var('+c.c+')" stroke-width="13" stroke-dasharray="'+Math.max(0,f*C-1.2).toFixed(2)+' '+C.toFixed(2)+'" stroke-dashoffset="'+(-off*C).toFixed(2)+'" transform="rotate(-90 50 50)"/>';off+=f;return seg;}).join(""):"")+
