@@ -504,6 +504,16 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
 
   <div class="do" id="planDo" aria-live="polite"></div>
   <button class="link" id="planReset" type="button" hidden>กลับไปให้ระบบจัดให้ทั้งหมด</button>
+  <div class="panel box" id="remBox">
+    <h2>เตือนวันซื้อทุกเดือน</h2>
+    <p class="muted" style="font-size:13.5px">เพิ่มเป็นนัดซ้ำทุกเดือนในปฏิทินของเครื่อง จะเตือนเองแม้ไม่ได้เปิดแอป</p>
+    <div class="fields two">
+      <label for="remDay">ซื้อทุกวันที่<select id="remDay"></select></label>
+      <label for="remTime">เวลาเตือน<input id="remTime" type="time"></label>
+    </div>
+    <button class="go" id="remGo" type="button">เพิ่มลงปฏิทิน</button>
+    <p class="note" id="remMsg">ปุ่มนี้สร้างไฟล์นัดหมาย ถ้าเปิดจากแอปที่เพิ่มไว้หน้าจอโฮมแล้วไม่ขึ้นหน้าเพิ่มลงปฏิทิน ให้เปิดเว็บนี้ใน Safari แล้วกดอีกครั้ง</p>
+  </div>
   <button class="link" id="onbAgain" type="button">ตอบคำถามเพื่อจัดแผนใหม่</button>
 
   <div class="panel box">
@@ -1015,7 +1025,7 @@ const BK=[
 const RISK={cons:["ระมัดระวัง",100],mod:["ปานกลาง",110],agg:["เชิงรุก",120]};
 const SPLIT={cons:{core:60,growth:10,tech:5,theme:0,div:25},mod:{core:55,growth:20,tech:10,theme:5,div:10},agg:{core:45,growth:25,tech:15,theme:10,div:5}};
 const SAFE={bond:70,gold:30};
-const P={age:36,ret:60,amt:5000,inf:2,risk:"agg",tilt:true,tiltPts:5,on:{},etf:{},r:{},custom:null,pmode:"hyb",hold:{},cash:5000,band:5,rbMode:"cash",mkP:"y1",mkDir:1,mkStr:30,mkTag:null,mkNote:"",tgRet:8,tgTag:null,auto:true,autoMk:true,style:"auto",sat:true,rs:8.5,goalMode:"pct",goalPct:10,goalAmt:5000000};
+const P={remDay:1,remTime:"09:00",age:36,ret:60,amt:5000,inf:2,risk:"agg",tilt:true,tiltPts:5,on:{},etf:{},r:{},custom:null,pmode:"hyb",hold:{},cash:5000,band:5,rbMode:"cash",mkP:"y1",mkDir:1,mkStr:30,mkTag:null,mkNote:"",tgRet:8,tgTag:null,auto:true,autoMk:true,style:"auto",sat:true,rs:8.5,goalMode:"pct",goalPct:10,goalAmt:5000000};
 /* long-run return assumption per ETF, % per year: editable in the table, not a forecast */
 const ER={VOO:7,VTI:7,VT:6.5,VXUS:6,QQQ:8.5,QQQM:8.5,VUG:8,SCHG:8,VGT:9.5,XLK:9.5,SMH:11,SOXX:11,BOTZ:8,CIBR:9,ITA:8,SCHD:6.5,GLD:4,BND:3.5,VIG:6.5,SGOV:3,VEA:6,VWO:6.5,XLV:7};
 BK.forEach(b=>{P.on[b.k]=true;P.etf[b.k]=b.etfs[0];P.r[b.k]=b.r;P.hold[b.k]=0;});
@@ -1031,6 +1041,7 @@ function loadP(r){
       if(typeof r.mkTag==="string"&&typeof r.mkNote==="string"){P.mkTag=r.mkTag;P.mkNote=r.mkNote;}
       else if(typeof r.tgTag==="string"&&typeof r.mkNote==="string"){P.tgTag=r.tgTag;P.mkNote=r.mkNote;}}
     if(r.goalMode==="pct"||r.goalMode==="amt")P.goalMode=r.goalMode; if(typeof r.goalPct==="number"&&isFinite(r.goalPct))P.goalPct=Math.max(0,Math.min(40,r.goalPct)); if(typeof r.goalAmt==="number"&&isFinite(r.goalAmt)&&r.goalAmt>=0)P.goalAmt=r.goalAmt;
+    if(Number.isInteger(r.remDay)&&r.remDay>=1&&r.remDay<=28)P.remDay=r.remDay; if(/^([01]\d|2[0-3]):[0-5]\d$/.test(r.remTime||""))P.remTime=r.remTime;
     if(typeof r.sat==="boolean")P.sat=r.sat; P.pmode=["etf","hyb","stk"].includes(r.pmode)?r.pmode:(P.sat?"hyb":"etf"); if(typeof r.rs==="number"&&isFinite(r.rs))P.rs=Math.max(0,Math.min(20,r.rs));
     if(typeof r.auto==="boolean")P.auto=r.auto; if(typeof r.autoMk==="boolean")P.autoMk=r.autoMk; if(["auto","div","tech","usa","world"].includes(r.style))P.style=r.style;
     if(typeof r.tgRet==="number"&&isFinite(r.tgRet))P.tgRet=Math.max(3,Math.min(12,r.tgRet));
@@ -1517,6 +1528,13 @@ function pfChanged(list){syncHold();recHist();touch();if(list)renderPFList();upd
 function kindFields(){const k=$("pfKind").value;const au=k==="etf"||k==="stk";$("pfTickerL").hidden=!au;$("pfCostL").hidden=!au;$("pfCostFxL").hidden=!au;$("pfCostDL").hidden=!au;$("pfGroupL").hidden=k!=="fund";$("pfNameL").hidden=au||k==="cash";
   if(au)$("pfTicker").innerHTML=(k==="etf"?E.map(e=>[e.t,e.th]):ST.map(e=>[e.t,e.n])).map(x=>'<option value="'+x[0]+'">'+x[0]+' · '+esc(x[1])+'</option>').join("");
   $("pfQtyT").textContent=au?"จำนวนหน่วยที่ถือ":"มูลค่าตอนนี้ (บาท)";$("pfAddMsg").textContent=au?"ระบบคิดมูลค่าจากราคาล่าสุดและอัตราแลกเปลี่ยนให้เอง":k==="fund"?"สำหรับ ETF หรือกองทุนที่ไม่มีในระบบ เลือกกลุ่มที่ใกล้เคียง เพื่อให้นับรวมในแผน ETF":"ประเภทนี้ยังไม่มีราคาอัตโนมัติ ใส่มูลค่าเป็นบาทและแก้ได้ทุกเมื่อ";}
+function makeIcs(day,time){const n=new Date(),p2=x=>String(x).padStart(2,"0"),hh=time.slice(0,2),mm=time.slice(3,5);
+  let y=n.getFullYear(),m=n.getMonth();if(day<n.getDate()||(day===n.getDate()&&(n.getHours()>+hh||(n.getHours()===+hh&&n.getMinutes()>=+mm))))m++;
+  const s=new Date(y,m,day),ds=s.getFullYear()+p2(s.getMonth()+1)+p2(s.getDate())+"T"+hh+mm+"00",st=n.toISOString().replace(/[-:]/g,"").slice(0,15)+"Z",
+  url=location.origin+location.pathname;
+  return["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//ETF Radar//TH","CALSCALE:GREGORIAN","BEGIN:VEVENT","UID:dca-"+Date.now()+"@etf-radar","DTSTAMP:"+st,"DTSTART:"+ds,"DURATION:PT15M",
+   "RRULE:FREQ=MONTHLY;BYMONTHDAY="+day,"SUMMARY:ถึงวันซื้อ ETF รายเดือน (ETF Radar)","DESCRIPTION:เปิดแอปดูรายการซื้อเดือนนี้ แล้วกดบันทึกลงพอร์ต "+url,"URL:"+url,
+   "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:ถึงวันซื้อ ETF รายเดือน","TRIGGER:PT0M","END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n")+"\r\n";}
 function initPF(){
   $("pfKind").innerHTML=Object.keys(KINDS).map(k=>'<option value="'+k+'">'+KINDS[k]+'</option>').join("");
   $("pfTicker").innerHTML=E.map(e=>'<option value="'+e.t+'">'+e.t+' · '+esc(e.th)+'</option>').join("");
@@ -1544,6 +1562,13 @@ function initPF(){
     if(PF.divs.length>=300){$("dvMsg").textContent="เก็บได้สูงสุด 300 รายการ";return;}
     PF.divs.push({id:newId(),t:t,d:d,a:a,w:isFinite(w)&&w>0?w:0});$("dvA").value="";$("dvW").value="";$("dvMsg").textContent="บันทึกแล้ว";pfChanged(false);});
   $("divList").addEventListener("click",ev=>{const b=ev.target.closest("[data-dvdel]");if(!b)return;PF.divs=PF.divs.filter(x=>x.id!==b.dataset.dvdel);pfChanged(false);});
+  $("remDay").innerHTML=Array.from({length:28},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'</option>').join("");
+  $("remDay").value=P.remDay;$("remTime").value=P.remTime;
+  $("remDay").addEventListener("change",ev=>{P.remDay=+ev.target.value;savePlan();});
+  $("remTime").addEventListener("change",ev=>{if(/^\d{2}:\d{2}$/.test(ev.target.value)){P.remTime=ev.target.value;savePlan();}});
+  $("remGo").addEventListener("click",()=>{const ics=makeIcs(P.remDay,P.remTime),a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar;charset=utf-8"}));a.download="etf-radar-dca.ics";document.body.appendChild(a);a.click();a.remove();
+    $("remMsg").textContent="สร้างนัดหมายแล้ว ยืนยันเพิ่มลงปฏิทินในหน้าที่ขึ้นมา ถ้าซื้อวันอื่นแล้ว ให้ลบนัดเดิมในปฏิทินก่อนเพิ่มใหม่";});
   $("pfSnap").addEventListener("click",()=>{if(recHist())touch();updatePF();});
   $("pfFx").addEventListener("input",ev=>{const v=parseFloat(ev.target.value);
     if(isFinite(v)&&v>20&&v<60){PF.fx=v;PF.fxManual=true;}else if(ev.target.value===""){PF.fxManual=false;if(FX_AUTO)PF.fx=FX_AUTO;}else return;
