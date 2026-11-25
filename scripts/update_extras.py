@@ -102,6 +102,18 @@ for it in items:
     except Exception as e:
         print("fill failed", t, e)
 
+# top-10 holdings of every ETF, refreshed each run: the app uses them to spot overlap between funds
+for it in [i for i in items if i.get("k") != "stk"]:
+    try:
+        th = yf.Ticker(it["t"]).funds_data.top_holdings
+        if th is not None and len(th):
+            col = [c for c in th.columns if "ercent" in c][0]
+            h = [{"s": str(s).split(".")[0].upper(), "w": round(float(w) * 100, 2)} for s, w in th[col].head(10).items() if float(w) > 0]
+            if h:
+                it["h"] = h
+    except Exception as e:
+        print("holdings failed", it["t"], e)
+
 json.dump(q, open("quotes.json", "w"), ensure_ascii=False, separators=(",", ":"))
 
 POS = r"\b(beats?|surg\w*|soar\w*|jump\w*|rall(y|ies|ied)|record high|upgrade[sd]?|rais\w* (guidance|outlook|forecast|target)|strong|wins?|approv\w*|outperform\w*|tops|climb\w*|gains?)\b"
