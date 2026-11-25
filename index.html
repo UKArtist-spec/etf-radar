@@ -410,20 +410,21 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
       <label for="siEmail">อีเมล<input id="siEmail" type="email" autocomplete="email" inputmode="email" required></label>
       <label for="siPass">รหัสผ่าน<input id="siPass" type="password" autocomplete="current-password" required></label>
       <button class="go" type="submit">เข้าสู่ระบบ</button>
+      <p class="gpriv">เข้าด้วย Google ครั้งแรกจะสร้างบัญชีใหม่ และถือว่ายอมรับ<a href="privacy.html" target="_blank" rel="noopener">นโยบายความเป็นส่วนตัว</a></p>
       <div class="glinks"><button type="button" data-go="gReset">ลืมรหัสผ่าน</button><button type="button" data-go="gSignup">ยังไม่มีบัญชี สมัครสมาชิก</button></div>
     </form>
 
     <form class="gform" id="gSignup" novalidate hidden>
       <h2>สมัครสมาชิก</h2>
       <button class="gbtn" type="button" data-google><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.700 29.200 36 24 36c-6.600 0-12-5.400-12-12s5.400-12 12-12c3.100 0 5.800 1.200 7.900 3.100l5.700-5.700C34 6.100 29.300 4 24 4 12.900 4 4 12.900 4 24s8.900 20 20 20 20-8.900 20-20c0-1.300-.1-2.400-.4-3.500z"/><path fill="#FF3D00" d="M6.300 14.700l6.600 4.800C14.700 15.100 19 12 24 12c3.100 0 5.800 1.200 7.900 3.100l5.700-5.700C34 6.100 29.300 4 24 4 16.300 4 9.700 8.300 6.300 14.700z"/><path fill="#4CAF50" d="M24 44c5.200 0 9.900-2 13.400-5.200l-6.200-5.200C29.200 35.100 26.700 36 24 36c-5.200 0-9.600-3.300-11.300-8l-6.500 5C9.500 39.600 16.200 44 24 44z"/><path fill="#1976D2" d="M43.600 20.500H42V20H24v8h11.300c-.8 2.200-2.200 4.200-4.100 5.600l6.200 5.200C37 39.200 44 34 44 24c0-1.300-.1-2.400-.4-3.500z"/></svg> สมัครด้วย Google</button>
-      <p class="gpriv" style="margin-top:-4px">การใช้ Google ถือว่ายอมรับการเก็บข้อมูลตามด้านล่าง</p>
+      <p class="gpriv" style="margin-top:-4px">ติ๊กยอมรับด้านล่างก่อน แล้วจึงกดสมัครด้วย Google</p>
       <div class="gor"><span>หรือสมัครด้วยอีเมล</span></div>
       <label for="suEmail">อีเมล<input id="suEmail" type="email" autocomplete="email" inputmode="email" required></label>
       <label for="suPass">รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)<input id="suPass" type="password" autocomplete="new-password" minlength="8" required></label>
       <label for="suPass2">ยืนยันรหัสผ่าน<input id="suPass2" type="password" autocomplete="new-password" minlength="8" required></label>
-      <label class="chk" for="suOk"><input type="checkbox" id="suOk"> ฉันอ่านและยอมรับการเก็บข้อมูลตามด้านล่าง</label>
+      <label class="chk" for="suOk"><input type="checkbox" id="suOk"> ฉันอ่านและยอมรับ<a href="privacy.html" target="_blank" rel="noopener">นโยบายความเป็นส่วนตัว</a></label>
       <details class="gpriv"><summary>การเก็บและใช้ข้อมูล</summary>
-        <p>ระบบเก็บอีเมลของคุณ และข้อมูลที่คุณกรอกในแอป เช่น อายุ เงินลงทุนต่อเดือน และสินทรัพย์ที่ถือ เพื่อแสดงแผนและพอร์ตให้คุณเท่านั้น ข้อมูลเก็บบน Firebase ของ Google ที่ศูนย์ข้อมูลสิงคโปร์ ผู้ใช้คนอื่นเปิดดูข้อมูลของคุณไม่ได้ ผู้ดูแลแอปมีสิทธิ์เข้าถึงฐานข้อมูลในทางเทคนิคเพื่อดูแลระบบ คุณดาวน์โหลดหรือลบบัญชีและข้อมูลทั้งหมดได้เองทุกเมื่อในแท็บพอร์ต ไม่ต้องกรอกชื่อจริงหรือเลขบัญชีใด ๆ</p>
+        <p>ระบบเก็บอีเมลของคุณ และข้อมูลที่คุณกรอกในแอป เช่น อายุ เงินลงทุนต่อเดือน และสินทรัพย์ที่ถือ เพื่อแสดงแผนและพอร์ตให้คุณเท่านั้น ข้อมูลเก็บบน Firebase ของ Google ที่ศูนย์ข้อมูลสิงคโปร์ ผู้ใช้คนอื่นเปิดดูข้อมูลของคุณไม่ได้ ผู้ดูแลแอปมีสิทธิ์เข้าถึงฐานข้อมูลในทางเทคนิคเพื่อดูแลระบบ คุณดาวน์โหลดหรือลบบัญชีและข้อมูลทั้งหมดได้เองทุกเมื่อในแท็บพอร์ต ไม่ต้องกรอกชื่อจริงหรือเลขบัญชีใด ๆ <a href="privacy.html" target="_blank" rel="noopener">อ่านนโยบายความเป็นส่วนตัวฉบับเต็ม</a></p>
       </details>
       <button class="go" type="submit">สมัครสมาชิก</button>
       <div class="glinks"><button type="button" data-go="gSignin">มีบัญชีแล้ว เข้าสู่ระบบ</button></div>
@@ -732,6 +733,7 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
       <button class="link" id="acctExport" type="button">ดาวน์โหลดข้อมูลของฉัน</button>
       <button class="link" id="acctImportBtn" type="button">นำเข้าข้อมูลจากไฟล์</button>
       <input id="acctImport" type="file" accept="application/json,.json" hidden>
+      <a class="link" href="privacy.html" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">นโยบายความเป็นส่วนตัว</a>
       <button class="link danger" id="acctDel" type="button">ลบบัญชีและข้อมูลทั้งหมด</button>
     </div>
     <p class="note" id="acctMsg" aria-live="polite"></p>
@@ -1849,7 +1851,9 @@ else{
   });
 
   const gp = new A.GoogleAuthProvider(); gp.setCustomParameters({prompt:"select_account"});
-  document.querySelectorAll("[data-google]").forEach(b => b.addEventListener("click", async () => { msg(""); b.disabled=true;
+  document.querySelectorAll("[data-google]").forEach(b => b.addEventListener("click", async () => { msg("");
+    if(b.closest("#gSignup")&&!$("suOk").checked){msg("กรุณาอ่านและติ๊กยอมรับนโยบายความเป็นส่วนตัวก่อนสมัคร","err");return;}
+    b.disabled=true;
     try{ await A.signInWithPopup(auth, gp); }
     catch(e){ if(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment"){ try{ await A.signInWithRedirect(auth,gp); return; }catch(e2){ msg(th(e2),"err"); } }
       else if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request") msg(th(e),"err"); }
