@@ -658,6 +658,7 @@ body.hide input.money{filter:none;color:transparent;text-shadow:0 0 10px var(--i
           <label for="pfName" id="pfNameL">ชื่อ<input id="pfName" type="text" maxlength="40" placeholder="เช่น PTT, BTC"></label>
           <label for="pfQty"><span id="pfQtyT">จำนวนหน่วย</span><input id="pfQty" type="number" min="0" step="any" inputmode="decimal"></label>
           <label for="pfCost" id="pfCostL">ต้นทุนรวมที่จ่ายจริง (บาท) ไม่บังคับ<input class="money" id="pfCost" type="number" min="0" step="any" inputmode="decimal"></label>
+          <label for="pfCostD" id="pfCostDL">วันที่ซื้อ (ว่าง = วันนี้)<input id="pfCostD" type="date"></label>
           <label for="pfCostFx" id="pfCostFxL">อัตราแลกเปลี่ยนตอนซื้อ (ว่าง = ใช้ค่าปัจจุบัน)<input id="pfCostFx" type="number" min="20" max="60" step="0.01" inputmode="decimal"></label>
         </div>
         <button class="go" id="pfAdd" type="button">เพิ่มเข้าพอร์ต</button>
@@ -1122,11 +1123,12 @@ function recordHtml(){if(!PLAN_BUYS.length)return"";const done=PF.lastBuy===mont
   return '<div class="rec">'+(REC_UNDO?'<p class="recmsg up" role="status">บันทึกลงพอร์ตแล้ว '+REC_UNDO.n+' รายการ <button type="button" class="link" id="recGo">ดูพอร์ต</button> <button type="button" class="link" id="recUndo">ยกเลิก</button></p>':
     '<button type="button" class="go" id="recBtn">'+(done?(REC_ARM?"กดอีกครั้งเพื่อบันทึกเพิ่ม":"เดือนนี้บันทึกแล้ว · บันทึกเพิ่มอีกครั้ง"):"ซื้อตามนี้แล้ว บันทึกลงพอร์ต")+'</button>'+
     '<p class="muted" style="font-size:12px">ระบบแปลงยอดเงินเป็นจำนวนหน่วยจากราคาล่าสุดและอัตรา '+PF.fx.toFixed(2)+' บาท/ดอลลาร์ ถ้าราคาที่ซื้อจริงต่างไป แก้จำนวนหน่วยได้ในแท็บพอร์ต</p>')+'</div>';}
-function recordBuys(){const before=JSON.parse(JSON.stringify(PF.items)),lb=PF.lastBuy;let n=0;
+const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+function recordBuys(){const nb=PF.buys.length,before=JSON.parse(JSON.stringify(PF.items)),lb=PF.lastBuy;let n=0;
   PLAN_BUYS.forEach(x=>{const e=(x.k==="etf"?E:ST).find(y=>y.t===x.t);if(!e||!(e.p>0))return;const u=Math.round(x.baht/(e.p*PF.fx)*1e6)/1e6;if(!(u>0))return;
     const it=PF.items.find(y=>y.k===x.k&&y.t===x.t);let tg=it;if(it)it.u=Math.round((it.u+u)*1e6)/1e6;else{if(PF.items.length>=60)return;tg={id:newId(),k:x.k,n:"",t:x.t,u:u};PF.items.push(tg);}
-    const cu=u*e.p;tg.uc=(tg.uc||0)+u;tg.cu=(tg.cu||0)+cu;tg.cb=(tg.cb||0)+cu*PF.fx;n++;});
-  if(!n)return;PF.lastBuy=monthKey();REC_UNDO={items:before,lb:lb,n:n};REC_ARM=false;pfChanged(true);}
+    const cu=u*e.p;tg.uc=(tg.uc||0)+u;tg.cu=(tg.cu||0)+cu;tg.cb=(tg.cb||0)+cu*PF.fx;PF.buys.push({id:newId(),t:x.t,d:todayStr(),a:cu*PF.fx,u:u});n++;});
+  if(!n)return;PF.lastBuy=monthKey();REC_UNDO={items:before,lb:lb,n:n,nb:nb};REC_ARM=false;pfChanged(true);}
 function updatePlan(){
   syncHold();
   const t=targets(),sum=wsum(t),m=mkt(),yrs=Math.max(0,P.ret-P.age);
@@ -1360,7 +1362,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 /* ===== PORTFOLIO: every asset in one place; ETF holdings feed the plan and the ETF rebalance ===== */
 const CLS=[{k:"etf",n:"ETF ตามแผน",c:"--c1"},{k:"th",n:"หุ้นไทย",c:"--c3"},{k:"us",n:"หุ้นต่างประเทศ",c:"--c2"},{k:"cr",n:"Crypto",c:"--c4"},{k:"cash",n:"เงินสด",c:"--c7"}];
 const KINDS={etf:"ETF ในระบบ (ราคาอัตโนมัติ)",stk:"หุ้นต่างประเทศในระบบ (ราคาอัตโนมัติ)",fund:"ETF / กองทุนอื่น",th:"หุ้นไทย",us:"หุ้นต่างประเทศ",cr:"Crypto",cash:"เงินสด"};
-const PF={items:[],tg:null,fx:33.77,fxManual:false,hist:{},savedAt:0,lastBuy:null,divs:[]};
+const PF={items:[],tg:null,fx:33.77,fxManual:false,hist:{},savedAt:0,lastBuy:null,divs:[],buys:[]};
 let FX_AUTO=null,HIDE=false,remoteDoc=null,pushTimer=null,pushing=false,dirty=false;
 const fin=v=>typeof v==="number"&&isFinite(v);
 const newId=()=>"i"+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);
@@ -1376,6 +1378,7 @@ function loadPF(r){if(!r||typeof r!=="object")return;
   if(fin(r.fx)&&r.fx>20&&r.fx<60)PF.fx=r.fx; PF.fxManual=r.fxManual===true;
   if(r.hist&&typeof r.hist==="object"){PF.hist={};Object.keys(r.hist).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().slice(-120).forEach(k=>{if(fin(r.hist[k])&&r.hist[k]>=0)PF.hist[k]=r.hist[k];});}
   if(Array.isArray(r.divs))PF.divs=r.divs.filter(d=>d&&typeof d.t==="string"&&/^[A-Z0-9.\-]{1,12}$/.test(d.t)&&/^\d{4}-\d{2}-\d{2}$/.test(d.d||"")&&fin(d.a)&&d.a>0).slice(-300).map(d=>({id:typeof d.id==="string"&&/^[a-z0-9]{2,24}$/.test(d.id)?d.id:newId(),t:d.t,d:d.d,a:d.a,w:fin(d.w)&&d.w>0?d.w:0}));
+  if(Array.isArray(r.buys))PF.buys=r.buys.filter(b=>b&&typeof b.t==="string"&&/^[A-Z0-9.\-]{1,12}$/.test(b.t)&&/^\d{4}-\d{2}-\d{2}$/.test(b.d||"")&&fin(b.a)&&b.a>0&&fin(b.u)&&b.u>0).slice(-600).map(b=>({id:typeof b.id==="string"&&/^[a-z0-9]{2,24}$/.test(b.id)?b.id:newId(),t:b.t,d:b.d,a:b.a,u:b.u}));
   if(fin(r.savedAt))PF.savedAt=r.savedAt; PF.lastBuy=typeof r.lastBuy==="string"&&/^\d{4}-\d{2}$/.test(r.lastBuy)?r.lastBuy:null;}
 try{loadPF(JSON.parse(localStorage.getItem("etfRadarPF")||"null"));}catch(e){}
 try{HIDE=localStorage.getItem("etfRadarHide")==="1";}catch(e){}
@@ -1392,7 +1395,7 @@ function clsTotals(){const t={};CLS.forEach(c=>{t[c.k]=0;});PF.items.forEach(it=
 const monthKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");};
 function recHist(){const tot=Math.round(pfTotal());if(tot<=0)return false;const k=monthKey();if(PF.hist[k]===tot)return false;PF.hist[k]=tot;return true;}
 
-function snapshotState(){return{v:1,savedAt:PF.savedAt,P:JSON.parse(JSON.stringify(P)),PF:{items:PF.items,tg:PF.tg,fx:PF.fx,fxManual:PF.fxManual,hist:PF.hist,divs:PF.divs},S:{stars:[...S.stars],period:S.period,mode:S.mode}};}
+function snapshotState(){return{v:1,savedAt:PF.savedAt,P:JSON.parse(JSON.stringify(P)),PF:{items:PF.items,tg:PF.tg,fx:PF.fx,fxManual:PF.fxManual,hist:PF.hist,divs:PF.divs,buys:PF.buys},S:{stars:[...S.stars],period:S.period,mode:S.mode}};}
 function syncNote(t){const el=$("syncNote");if(el)el.textContent=t;}
 function touch(){PF.savedAt=Date.now();savePF();if(!remoteDoc)return;clearTimeout(pushTimer);pushTimer=setTimeout(push,1500);}
 async function push(){if(!remoteDoc)return;if(pushing){dirty=true;return;}pushing=true;
@@ -1407,6 +1410,18 @@ function adopt(r){P.custom=null;P.mkTag=null;P.tgTag=null;loadP(r.P);loadPF(Obje
 
 function itemPL(it){if(!(isAuto(it)&&it.uc>0&&it.cb>0&&it.cu>0))return null;
   const px=itemPx(it),val=it.uc*px*PF.fx,pl=val-it.cb,price=(it.uc*px-it.cu)*(it.cb/it.cu);return{cost:it.cb,val:val,pl:pl,price:price,fx:pl-price};}
+function xirrCalc(){const by={};PF.items.forEach(it=>{if(isAuto(it)&&it.uc>0)(by[it.t]=by[it.t]||{uc:0}).uc+=it.uc;});
+  const cf=[];let used=0,all=Object.keys(by).length;
+  Object.keys(by).forEach(t=>{const bs=PF.buys.filter(b=>b.t===t),su=bs.reduce((a,b)=>a+b.u,0);if(!(su>0))return;
+    const sc=Math.min(1,by[t].uc/su),px=(PF.items.find(i=>i.t===t&&isAuto(i))&&itemPx(PF.items.find(i=>i.t===t&&isAuto(i))))||0;
+    bs.forEach(b=>cf.push([b.d,-b.a*sc]));PF.divs.filter(d=>d.t===t).forEach(d=>cf.push([d.d,d.a]));
+    cf.push([todayStr(),Math.min(su,by[t].uc)*px*PF.fx]);used++;});
+  if(!used)return{n:0,all:all};
+  const ds=cf.map(c=>Date.parse(c[0])),d0=Math.min.apply(null,ds),span=(Math.max.apply(null,ds)-d0)/864e5;
+  const f=r=>cf.reduce((a,c,i)=>a+c[1]/Math.pow(1+r,(ds[i]-d0)/(365*864e5)),0);
+  let lo=-0.95,hi=10,flo=f(lo),fhi=f(hi),r=null;
+  if(flo*fhi<0){for(let i=0;i<100;i++){const m=(lo+hi)/2,fm=f(m);if(flo*fm<=0){hi=m;}else{lo=m;flo=fm;}}r=(lo+hi)/2;}
+  return{n:used,all:all,span:span,r:r};}
 const divNet=()=>PF.divs.reduce((a,d)=>a+d.a,0);
 function renderDivs(){if(!$("divList"))return;
   const ts=[...new Set(PF.items.filter(isAuto).map(i=>i.t).concat(PF.divs.map(d=>d.t)))];
@@ -1414,6 +1429,10 @@ function renderDivs(){if(!$("divList"))return;
   const yr=String(new Date().getFullYear()),ytd=PF.divs.filter(d=>d.d.slice(0,4)===yr).reduce((a,d)=>a+d.a,0);
   $("divSum").innerHTML=PF.divs.length?'ปีนี้ <b class="money">'+baht(ytd)+' บาท</b> · รวมทั้งหมด <b class="money">'+baht(divNet())+' บาท</b> ('+PF.divs.length+' ครั้ง)':"ยังไม่มีรายการ บันทึกเมื่อได้รับปันผลเข้าบัญชี เพื่อให้กำไรรวมครบ";
   $("divList").innerHTML=PF.divs.slice().sort((a,b)=>b.d.localeCompare(a.d)).slice(0,8).map(d=>'<div class="pfrow" style="grid-template-columns:minmax(0,1fr) auto 36px"><div><b class="tk">'+esc(d.t)+'</b><span class="nm">'+thDate(d.d)+(d.w?' · ถูกหักภาษี '+baht(d.w)+' บาท':'')+'</span></div><div class="pfv"><b class="money up">+'+baht(d.a)+' บาท</b></div><button class="pfx" type="button" data-dvdel="'+d.id+'" aria-label="ลบรายการปันผล '+esc(d.t)+'">✕</button></div>').join("");}
+function xirrLine(){const x=xirrCalc();
+  if(!x.n)return'<div class="ln"><span>ผลตอบแทนต่อปี (XIRR)</span><b>ยังไม่มีวันที่ซื้อ</b></div>';
+  if(x.span<90||x.r==null)return'<div class="ln"><span>ผลตอบแทนต่อปี (XIRR)</span><b>รอข้อมูลครบ 3 เดือน</b></div>';
+  return'<div class="ln"><span>ผลตอบแทนต่อปี (XIRR) · '+x.n+' จาก '+x.all+' รายการ</span><b class="money '+cls(x.r)+'">'+pct(x.r*100,1)+'</b></div>';}
 function renderPnl(){const el=$("pfPnl");if(!el)return;const rs=PF.items.map(itemPL).filter(Boolean);
   if(!rs.length){el.hidden=true;return;}
   const s=k=>rs.reduce((a,r)=>a+r[k],0),dv=divNet(),pl=s("pl")+dv,cost=s("cost"),sg=v=>(v>0?"+":"")+baht(v)+" บาท",au=PF.items.filter(isAuto).length;
@@ -1422,8 +1441,9 @@ function renderPnl(){const el=$("pfPnl");if(!el)return;const rs=PF.items.map(ite
    '<div class="ln"><span>จากราคาหุ้น/ETF</span><b class="money '+cls(s("price"))+'">'+sg(s("price"))+'</b></div>'+
    '<div class="ln"><span>จากค่าเงินบาท</span><b class="money '+cls(s("fx"))+'">'+sg(s("fx"))+'</b></div>'+
    '<div class="ln"><span>จากปันผลที่บันทึกไว้</span><b class="money '+cls(dv)+'">'+sg(dv)+'</b></div>'+
+   xirrLine()+
    '<div class="ln"><span>ต้นทุนรวม</span><b class="money">'+baht(cost)+' บาท</b></div>'+
-   '<p class="note">คิดจาก '+rs.length+' จาก '+au+' รายการที่มีต้นทุน ยังไม่รวมค่าคอมมิชชัน และภาษี ปันผลนับทั้งหมดที่บันทึก แม้บางรายการอาจเป็นของหน่วยที่ไม่มีต้นทุน รายการที่ไม่มีต้นทุนจะเริ่มนับเมื่อกด "ซื้อตามนี้แล้ว บันทึกลงพอร์ต" หรือใส่ต้นทุนตอนเพิ่ม</p>';}
+   '<p class="note">คิดจาก '+rs.length+' จาก '+au+' รายการที่มีต้นทุน XIRR คิดตามวันที่ซื้อจริงและวันที่ได้รับปันผล เฉพาะรายการที่มีวันที่ซื้อ ยังไม่รวมค่าคอมมิชชัน และภาษี ปันผลนับทั้งหมดที่บันทึก แม้บางรายการอาจเป็นของหน่วยที่ไม่มีต้นทุน รายการที่ไม่มีต้นทุนจะเริ่มนับเมื่อกด "ซื้อตามนี้แล้ว บันทึกลงพอร์ต" หรือใส่ต้นทุนตอนเพิ่ม</p>';}
 function renderPFList(){
   $("pfList").innerHTML=PF.items.length?PF.items.map(it=>{const c=CLS.find(x=>x.k===itemCls(it)),g=itemGroup(it),gb=g&&BK.find(b=>b.k===g),isE=isAuto(it);
     return '<div class="pfrow"><span class="dot" style="background:var('+c.c+')"></span><div><b class="tk">'+esc(isE?it.t:(it.n||c.n))+'</b><span class="nm">'+c.n+(gb?" · "+gb.n:"")+(isE?" · ราคาอัตโนมัติ":"")+'</span></div>'+
@@ -1468,7 +1488,7 @@ function updatePF(){
       '<text x="'+L+'" y="'+(H-6)+'">'+lab(ks[0])+'</text><text x="'+(W-R)+'" y="'+(H-6)+'" text-anchor="end">'+lab(ks[ks.length-1])+'</text><text x="'+(W-R)+'" y="12" text-anchor="end">ล่าสุด '+baht(vs[vs.length-1])+' บาท</text></svg>';}
 }
 function pfChanged(list){syncHold();recHist();touch();if(list)renderPFList();updatePlan();}
-function kindFields(){const k=$("pfKind").value;const au=k==="etf"||k==="stk";$("pfTickerL").hidden=!au;$("pfCostL").hidden=!au;$("pfCostFxL").hidden=!au;$("pfGroupL").hidden=k!=="fund";$("pfNameL").hidden=au||k==="cash";
+function kindFields(){const k=$("pfKind").value;const au=k==="etf"||k==="stk";$("pfTickerL").hidden=!au;$("pfCostL").hidden=!au;$("pfCostFxL").hidden=!au;$("pfCostDL").hidden=!au;$("pfGroupL").hidden=k!=="fund";$("pfNameL").hidden=au||k==="cash";
   if(au)$("pfTicker").innerHTML=(k==="etf"?E.map(e=>[e.t,e.th]):ST.map(e=>[e.t,e.n])).map(x=>'<option value="'+x[0]+'">'+x[0]+' · '+esc(x[1])+'</option>').join("");
   $("pfQtyT").textContent=au?"จำนวนหน่วยที่ถือ":"มูลค่าตอนนี้ (บาท)";$("pfAddMsg").textContent=au?"ระบบคิดมูลค่าจากราคาล่าสุดและอัตราแลกเปลี่ยนให้เอง":k==="fund"?"สำหรับ ETF หรือกองทุนที่ไม่มีในระบบ เลือกกลุ่มที่ใกล้เคียง เพื่อให้นับรวมในแผน ETF":"ประเภทนี้ยังไม่มีราคาอัตโนมัติ ใส่มูลค่าเป็นบาทและแก้ได้ทุกเมื่อ";}
 function initPF(){
@@ -1484,7 +1504,7 @@ function initPF(){
     const it={id:newId(),k:k,n:au?"":($("pfName").value||"").trim().slice(0,40)};
     if(au){it.t=$("pfTicker").value;it.u=q;
       const cb=parseFloat($("pfCost").value),fx0=parseFloat($("pfCostFx").value),f=isFinite(fx0)&&fx0>20&&fx0<60?fx0:PF.fx;
-      if(isFinite(cb)&&cb>0){it.uc=q;it.cb=cb;it.cu=cb/f;}$("pfCost").value="";$("pfCostFx").value="";}else{it.v=q;if(k==="fund")it.g=$("pfGroup").value;if(k==="cash")it.n="เงินสด";}
+      if(isFinite(cb)&&cb>0){it.uc=q;it.cb=cb;it.cu=cb/f;const bd=$("pfCostD").value;PF.buys.push({id:newId(),t:it.t,d:/^\d{4}-\d{2}-\d{2}$/.test(bd)&&bd<=todayStr()?bd:todayStr(),a:cb,u:q});}$("pfCostD").value="";$("pfCost").value="";$("pfCostFx").value="";}else{it.v=q;if(k==="fund")it.g=$("pfGroup").value;if(k==="cash")it.n="เงินสด";}
     PF.items.push(it);$("pfQty").value="";$("pfName").value="";$("pfAddMsg").textContent="เพิ่มแล้ว";pfChanged(true);});
   $("pfList").addEventListener("input",ev=>{const id=(ev.target.id||"");if(id.indexOf("iq-")!==0)return;const it=PF.items.find(x=>x.id===id.slice(3));if(!it)return;
     const v=Math.max(0,numv(ev.target,0));if(isAuto(it)){it.u=v;if(it.uc>v){const r=v/it.uc;it.uc=v;it.cu*=r;it.cb*=r;if(!(v>0)){delete it.uc;delete it.cu;delete it.cb;}}}else it.v=v;pfChanged(false);});
@@ -1725,7 +1745,7 @@ $("tabs").addEventListener("click",ev=>{const b=ev.target.closest("button");if(b
 $("planDo").addEventListener("click",ev=>{
   const rb=ev.target.closest("#recBtn,#recUndo,#recGo");
   if(rb){if(rb.id==="recGo"){REC_UNDO=null;setTab("portfolio",true);updatePlan();return;}
-    if(rb.id==="recUndo"){if(REC_UNDO){PF.items=REC_UNDO.items;PF.lastBuy=REC_UNDO.lb;REC_UNDO=null;pfChanged(true);}return;}
+    if(rb.id==="recUndo"){if(REC_UNDO){PF.items=REC_UNDO.items;PF.buys=PF.buys.slice(0,REC_UNDO.nb);PF.lastBuy=REC_UNDO.lb;REC_UNDO=null;pfChanged(true);}return;}
     if(PF.lastBuy===monthKey()&&!REC_ARM){REC_ARM=true;updatePlan();return;}recordBuys();return;}const sb=ev.target.closest("[data-s]");if(sb){setTab("stocks",true);selectStock(sb.dataset.s,true);return;}const b=ev.target.closest("[data-t]");if(!b)return;setTab("market",true);select(b.dataset.t,true);});
 try{window.addEventListener("hashchange",()=>setTab(location.hash.slice(1),false));}catch(e){}
 render();renderDCA();initPlan();initPF();
